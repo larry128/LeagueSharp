@@ -28,7 +28,7 @@ namespace najsvan
 
         public bool Process_Tree(String treeName, String stack)
         {
-            Tree firstTree = JSONHelper.Deserialize<Tree>(LeagueSharp.Common.Config.LeagueSharpDirectory + "/bt/" + treeName + ".json");
+            Tree firstTree = JSONHelper.Deserialize<Tree>(LeagueSharp.Common.Config.LeagueSharpDirectory + "/bt/" + funcProcessor.GetType().Name + "/" + treeName + ".json");
             // expected to have one "Start" node
             List<Node> nodes = firstTree.nodes;
             Assert.True(nodes != null && nodes.Count == 1, "nodes != null && nodes.Count == 1");

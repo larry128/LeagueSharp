@@ -6,8 +6,10 @@ namespace najsvan
 {
     public class KarthusSupport
     {
+        private static Logger LOG = Logger.GetLogger("KarthusSupport");
         private const int TICK_DELAY = 100;
         private int lastTickProcessed;
+        private BTForrest forrest;
 
         public KarthusSupport()
         {
@@ -17,18 +19,8 @@ namespace najsvan
 
         private void Game_OnGameLoad(EventArgs args)
         {
+            forrest = new BTForrest("First", this);
             Game.PrintChat("KarthusSupport - Loaded");
-            BTForrest forrest = new BTForrest("FirstTree", this);
-
-            try
-            {
-                forrest.Tick();
-            }
-            catch (Exception e)
-            {
-               Game.PrintChat( e.GetType().Name + " : " + e.Message);
-               Logger.Log(e.ToString());
-            }
         }
 
         private void Game_OnGameUpdate(EventArgs args)
@@ -36,20 +28,26 @@ namespace najsvan
             int currentTick = Environment.TickCount;
             if (currentTick - lastTickProcessed > TICK_DELAY)
             {
-
+                try
+                {
+                    forrest.Tick();
+                }
+                catch (Exception e)
+                {
+                    Game.PrintChat(e.GetType().Name + " : " + e.Message);
+                    LOG.Error(e.ToString());
+                }
                 lastTickProcessed = currentTick;
             }
         }
 
         public bool Action_Action_1(Node node, String func, String stack)
         {
-            Game.PrintChat(stack + node.ToString());
             return true;
         }
 
         public bool Condition_Condition_1(Node node, String func, String stack)
         {
-            Game.PrintChat(stack + node.ToString());
             return true;
         }
     }
