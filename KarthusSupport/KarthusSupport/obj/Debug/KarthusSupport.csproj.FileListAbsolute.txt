@@ -1,1 +1,0 @@
-C:\git\LeaqueSharp\KarthusSupport\KarthusSupport\bin\Release\KarthusSupport.exe.config
