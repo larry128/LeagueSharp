@@ -26,7 +26,8 @@ namespace najsvan
             }
             catch (Exception e)
             {
-                Game.PrintChat(e.Message);
+               Game.PrintChat( e.GetType().Name + " : " + e.Message);
+               Logger.Log(e.ToString());
             }
         }
 
@@ -46,7 +47,7 @@ namespace najsvan
             return true;
         }
 
-        public bool Action_Condition_1(Node node, String func, String stack)
+        public bool Condition_Condition_1(Node node, String func, String stack)
         {
             Game.PrintChat(stack + node.ToString());
             return true;
