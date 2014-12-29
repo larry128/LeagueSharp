@@ -10,9 +10,9 @@ namespace najsvan
     {
         private static readonly Logger LOG = Logger.GetLogger("KarthusSupport");
         private BTForrest forrest;
+        private ImmutableContext immutableContext;
         private MutableContext mutableContext;
         private ProducedContext producedContext;
-        private ImmutableContext immutableContext;
 
         public KarthusSupport()
         {
@@ -34,6 +34,7 @@ namespace najsvan
             producedContext = new ProducedContext();
             mutableContext = new MutableContext();
             immutableContext = new ImmutableContext();
+
             producedContext.Set(ProducedContextKey.EnemyHeroes, Producer_EnemyHeroes);
             producedContext.Set(ProducedContextKey.AllyHeroes, Producer_AllyHeroes);
 
@@ -53,6 +54,7 @@ namespace najsvan
             {
                 try
                 {
+                    LOG.Debug("forrest.Tick()");
                     forrest.Tick();
                 }
                 catch (Exception e)
@@ -65,33 +67,44 @@ namespace najsvan
             }
         }
 
-        public bool Action_FollowLeader(Node node, String func, String stack)
+        public delegate bool Handler();
+
+        public bool LoggingAspect(Node node, String stack, Handler handler)
         {
-            LOG.Debug("Action_FollowLeader");
-            immutableContext.myHero.IssueOrder(GameObjectOrder.MoveTo, mutableContext.leader.ServerPosition);
-            return true;
+            bool reasult = handler();
+            LOG.Debug(stack + " : " + reasult);
+            return reasult;
         }
 
-        public bool Action_PickLeader(Node node, String func, String stack)
+        public bool Action_FollowLeader(Node node, String stack)
         {
-            LOG.Debug("Action_PickLeader");
-            List<Obj_AI_Hero> allyHeroes = (List<Obj_AI_Hero>)producedContext.Get(ProducedContextKey.AllyHeroes);
-            if (allyHeroes.Count > 0)
+            return LoggingAspect(node, stack, () =>
             {
-                mutableContext.leader = allyHeroes[0];
+                immutableContext.myHero.IssueOrder(GameObjectOrder.MoveTo, mutableContext.leader.ServerPosition);
                 return true;
-            }
-            else
-            {
-                return false;
-            }
-
+            });
         }
 
-        public bool Condition_IsLeaderKnown(Node node, String func, String stack)
+        public bool Action_PickLeader(Node node, String stack)
         {
-            LOG.Debug("Condition_IsLeaderKnown");
-            return mutableContext.leader != null;
+            return LoggingAspect(node, stack, () =>
+            {
+                List<Obj_AI_Hero> allyHeroes = (List<Obj_AI_Hero>)producedContext.Get(ProducedContextKey.AllyHeroes);
+                if (allyHeroes.Count > 0)
+                {
+                    mutableContext.leader = allyHeroes[0];
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            });
+        }
+
+        public bool Condition_IsLeaderKnown(Node node, String stack)
+        {
+            return LoggingAspect(node, stack, () => mutableContext.leader != null);
         }
 
         public delegate bool HeroCondition(Obj_AI_Hero hero);
@@ -111,13 +124,11 @@ namespace najsvan
 
         public List<Obj_AI_Hero> Producer_EnemyHeroes()
         {
-            LOG.Debug("Producer_EnemyHeroes");
             return ForeachHeroes((hero) => !hero.IsAlly && !hero.IsDead);
         }
 
         public List<Obj_AI_Hero> Producer_AllyHeroes()
         {
-            LOG.Debug("Producer_AllyHeroes");
             return ForeachHeroes((hero) => hero.IsAlly && !hero.IsMe && !hero.IsDead);
         }
     }

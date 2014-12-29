@@ -5,7 +5,7 @@ namespace najsvan
 {
     public class ProducedContext
     {
-        private Dictionary<Enum, KeyValuePair<Producer, Object[]>> context = new Dictionary<Enum, KeyValuePair<Producer, Object[]>>();
+        private readonly Dictionary<Enum, KeyValuePair<Producer, Object[]>> context = new Dictionary<Enum, KeyValuePair<Producer, Object[]>>();
 
         public delegate Object Producer();
 

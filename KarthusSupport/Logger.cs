@@ -5,7 +5,7 @@ namespace najsvan
 {
     public class Logger
     {
-        private const bool DEBUG_ENABLED = false;
+        private const bool DEBUG_ENABLED = true;
         private static readonly String LOG_PATH_PREFIX = LeagueSharp.Common.Config.LeagueSharpDirectory + "/Logs/";
         private const String LOG_PATH_POSTFIX = "_runtime.log";
 
@@ -42,7 +42,7 @@ namespace najsvan
         private void Log(String severity, String message)
         {
             File.AppendAllText(logPath,
-                System.DateTime.Now.ToShortTimeString() + " : " + severity + " : " + message + "\n");
+                System.DateTime.Now.ToLongTimeString() + " : " + severity + " : " + message + "\n");
         }
     }
 }

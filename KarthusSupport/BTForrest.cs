@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
@@ -124,13 +125,13 @@ namespace najsvan
         public bool Process_Action(Node node, String stack)
         {
             Assert.True(node.children == null || node.children.Count == 0, "node.children == null || node.children.Count == 0");
-            return ProcessGenericNode(node, stack + node.ToString(), funcProcessor, "Action_" + node.name, node.func);
+            return ProcessGenericNode(node, stack + node.ToString(), funcProcessor, "Action_" + node.name);
         }
 
         public bool Process_Condition(Node node, String stack)
         {
             Assert.True(node.children == null || node.children.Count == 0, "node.children == null || node.children.Count == 0");
-            return ProcessGenericNode(node, stack + node.ToString(), funcProcessor, "Condition_" + node.name, node.func);
+            return ProcessGenericNode(node, stack + node.ToString(), funcProcessor, "Condition_" + node.name);
         }
 
         public bool Process_TreeLink(Node node, String stack)
@@ -146,7 +147,7 @@ namespace najsvan
             return ProcessGenericNode(node, stack, this, "Process_" + node.type);
         }
 
-        private bool ProcessGenericNode(Node node, String stack, Object processor, String methodName, String func = null)
+        private bool ProcessGenericNode(Node node, String stack, Object processor, String methodName)
         {
             String simpleSignature = processor.GetHashCode() + methodName;
             MethodInfo method;
@@ -158,8 +159,7 @@ namespace najsvan
                 reflectionCache.Add(simpleSignature, method);
             }
 
-            object[] parameters = func == null ? new object[] { node, stack } : new object[] { node, func, stack };
-            return (bool)method.Invoke(processor, parameters);
+            return (bool)method.Invoke(processor, new object[] { node, stack });
         }
     }
 
