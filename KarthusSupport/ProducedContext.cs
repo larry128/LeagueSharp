@@ -5,11 +5,11 @@ namespace najsvan
 {
     public class ProducedContext
     {
-        private readonly Dictionary<Enum, KeyValuePair<Producer, Object[]>> context = new Dictionary<Enum, KeyValuePair<Producer, Object[]>>();
+        private readonly Dictionary<ProducedContextKey, KeyValuePair<Producer, Object[]>> context = new Dictionary<ProducedContextKey, KeyValuePair<Producer, Object[]>>();
 
         public delegate Object Producer();
 
-        public Object Get(Enum key)
+        public Object Get(ProducedContextKey key)
         {
             KeyValuePair<Producer, Object[]> pair;
             if (context.TryGetValue(key, out pair))
@@ -37,7 +37,7 @@ namespace najsvan
             }
         }
 
-        public void Set(Enum key, Producer prod)
+        public void Set(ProducedContextKey key, Producer prod)
         {
             Assert.False(context.ContainsKey(key), "Trying to set producer for key " + key + " multiple times");
             context.Add(key, new KeyValuePair<Producer, Object[]>(prod, new Object[] {null}));

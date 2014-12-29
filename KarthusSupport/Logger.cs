@@ -5,7 +5,7 @@ namespace najsvan
 {
     public class Logger
     {
-        private const bool DEBUG_ENABLED = false;
+        public static readonly bool DEBUG_ENABLED = false;
         private static readonly String LOG_PATH_PREFIX = LeagueSharp.Common.Config.LeagueSharpDirectory + "/Logs/";
         private const String LOG_PATH_POSTFIX = "_runtime.log";
 

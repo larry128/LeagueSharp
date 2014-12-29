@@ -11,7 +11,7 @@ namespace najsvan
         static void Main(string[] args)
         {
             // ReSharper disable once ObjectCreationAsStatement
-            new KarthusSupport();
+            new GenericBot();
         }
     }
 }

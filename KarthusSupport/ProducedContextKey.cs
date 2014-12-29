@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace najsvan
 {
-    enum ProducedContextKey
+    public enum ProducedContextKey
     {
         EnemyHeroes,
         AllyHeroes

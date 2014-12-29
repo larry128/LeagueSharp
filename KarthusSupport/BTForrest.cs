@@ -26,7 +26,10 @@ namespace najsvan
 
         public void Tick()
         {
-            LOG.Debug("Tick()");
+            if (Logger.DEBUG_ENABLED)
+            { 
+                LOG.Debug(funcProcessor.GetType().Name + " forrest Tick()");
+            }
             Process_Tree(firstTreeName, "/");
         }
 

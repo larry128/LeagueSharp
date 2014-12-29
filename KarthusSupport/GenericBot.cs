@@ -2,19 +2,18 @@
 using System.Collections.Generic;
 using LeagueSharp;
 using LeagueSharp.Common;
-using SharpDX;
 
 namespace najsvan
 {
-    public class KarthusSupport
+    public class GenericBot
     {
-        private static readonly Logger LOG = Logger.GetLogger("KarthusSupport");
+        private static readonly Logger LOG = Logger.GetLogger("GenericBot");
         private BTForrest forrest;
         private ImmutableContext immutableContext;
         private MutableContext mutableContext;
         private ProducedContext producedContext;
 
-        public KarthusSupport()
+        public GenericBot()
         {
             CustomEvents.Game.OnGameEnd += Game_OnGameEnd;
             CustomEvents.Game.OnGameLoad += Game_OnGameLoad;
@@ -38,8 +37,8 @@ namespace najsvan
             producedContext.Set(ProducedContextKey.EnemyHeroes, Producer_EnemyHeroes);
             producedContext.Set(ProducedContextKey.AllyHeroes, Producer_AllyHeroes);
 
-            LOG.Info("Game_OnGameLoad - KarthusSupport - Loaded");
-            Game.PrintChat("KarthusSupport - Loaded");
+            LOG.Info("Game_OnGameLoad - GenericBot - Loaded");
+            Game.PrintChat("GenericBot - Loaded");
         }
 
         private void Game_OnGameUpdate(EventArgs args)
