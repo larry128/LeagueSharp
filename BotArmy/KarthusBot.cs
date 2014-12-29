@@ -6,7 +6,10 @@ using System.Threading.Tasks;
 
 namespace najsvan
 {
-    class KarthusSupportBot : SupportBot
+    public class KarthusBot : GenericBot
     {
+        public override void Action_ZombieCast(Node node, string stack)
+        {
+        }
     }
 }

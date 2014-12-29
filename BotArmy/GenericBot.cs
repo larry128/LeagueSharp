@@ -1,26 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using LeagueSharp;
 using LeagueSharp.Common;
-using SharpDX;
 
 namespace najsvan
 {
-    public class GenericBot
+    public abstract class GenericBot
     {
-        enum TreeKeys
-        {
-            NotInDanger
-        }
         private static readonly Logger LOG = Logger.GetLogger("GenericBot");
-        private readonly Dictionary<TreeKeys, JSONBTree> treeCache = new Dictionary<TreeKeys, JSONBTree>();
         private JSONBTree bTree;
         private Context context;
         private ProducedContext producedContext;
 
-        public GenericBot()
+        protected GenericBot()
         {
             CustomEvents.Game.OnGameEnd += Game_OnGameEnd;
             CustomEvents.Game.OnGameLoad += Game_OnGameLoad;
@@ -105,10 +98,7 @@ namespace najsvan
             }
         }
 
-        public void Action_ZombieCast(Node node, String stack)
-        {
-            
-        }
+        public abstract void Action_ZombieCast(Node node, String stack);
 
         public void Action_CheckEnvironment(Node node, String stack)
         {
@@ -173,16 +163,14 @@ namespace najsvan
             return false;
         }
 
-        public bool Condition_InDanger(Node node, String stack)
+        public bool Condition_IsInDanger(Node node, String stack)
         {
-            JSONBTree tree;
-            if (!treeCache.TryGetValue(TreeKeys.NotInDanger, out tree))
-            {
-                tree = new JSONBTree(new InDanger(context, producedContext));
-                treeCache.Add(TreeKeys.NotInDanger, tree);
-            }
+            return false;
+        }
 
-            return tree.Tick();
+        public bool Condition_IsInPanic(Node node, String stack)
+        {
+            return false;
         }
 
         public bool Condition_IsRegenerating(Node node, String stack)

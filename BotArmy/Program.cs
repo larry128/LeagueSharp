@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using LeagueSharp;
+using LeagueSharp.Common;
 
 namespace najsvan
 {
@@ -10,9 +8,18 @@ namespace najsvan
     {
         static void Main(string[] args)
         {
-            
-            // ReSharper disable once ObjectCreationAsStatement
-            new KarthusSupportBot();
+            CustomEvents.Game.OnGameLoad += Game_OnGameLoad;
+        }
+
+        static void Game_OnGameLoad(EventArgs args)
+        {
+            String champName = ObjectManager.Player.ChampionName;
+            switch (champName)
+            {
+                case "Karthus":
+                    GenericBot bot = new KarthusBot();
+                    break;
+            }
         }
     }
 }
