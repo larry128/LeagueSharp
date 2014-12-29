@@ -10,8 +10,9 @@ namespace najsvan
     {
         static void Main(string[] args)
         {
+            
             // ReSharper disable once ObjectCreationAsStatement
-            new GenericBot();
+            new KarthusSupportBot();
         }
     }
 }

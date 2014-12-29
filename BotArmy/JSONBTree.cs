@@ -9,43 +9,26 @@ using System.Reflection;
 
 namespace najsvan
 {
-    public class BTForrest
+    public class JSONBTree
     {
-        private static readonly Logger LOG = Logger.GetLogger("BTForrest");
+        private static readonly Logger LOG = Logger.GetLogger("JSONBTree");
         private readonly Dictionary<String, MethodInfo> reflectionCache = new Dictionary<String, MethodInfo>();
-        private readonly Dictionary<String, Tree> treeCache = new Dictionary<String, Tree>();
         private readonly Object funcProcessor;
-        private readonly String firstTreeName;
+        private readonly String treeName;
+        private readonly Tree tree;
 
-        public BTForrest(String firstTreeName, Object funcProcessor)
+        public JSONBTree(Object funcProcessor)
         {
             Assert.True(funcProcessor != null, "funcProcessor != null");
             this.funcProcessor = funcProcessor;
-            this.firstTreeName = firstTreeName;
+            this.treeName = funcProcessor.GetType().Name;
+            this.tree = JSONHelper.Deserialize<Tree>(LeagueSharp.Common.Config.LeagueSharpDirectory + "/bt/" + treeName + ".json");
+            Assert.True(tree != null, "JSONHelper.Deserialize<Tree>: null for : " + treeName);
         }
 
-        public void Tick()
+        public bool Tick(String stack = "")
         {
-            if (Logger.DEBUG_ENABLED)
-            { 
-                LOG.Debug(funcProcessor.GetType().Name + " forrest Tick()");
-            }
-            Process_Tree(firstTreeName, "/");
-        }
-
-        public bool Process_Tree(String treeName, String stack)
-        {
-            Tree tree;
-            String simpleTreeKey = funcProcessor.GetHashCode() + stack + treeName;
-            if (!treeCache.TryGetValue(simpleTreeKey, out tree))
-            {
-                LOG.Debug("JSONHelper.Deserialize " + treeName);
-                String funcProcessorName = funcProcessor.GetType().Name;
-                tree = JSONHelper.Deserialize<Tree>(LeagueSharp.Common.Config.LeagueSharpDirectory + "/bt/" + funcProcessorName + "/" + treeName + ".json");
-                LOG.Debug("JSONHelper.Deserialize done");
-                Assert.True(tree != null, "JSONHelper.Deserialize<Tree>: null for : " + treeName + " in " + funcProcessorName);
-                treeCache.Add(simpleTreeKey, tree);
-            }
+            LOG.Debug(treeName + " Tick()");
 
             // expected to have one "Start" node
             List<Node> nodes = tree.nodes;
@@ -131,22 +114,17 @@ namespace najsvan
         public bool Process_Action(Node node, String stack)
         {
             Assert.True(node.children == null || node.children.Count == 0, "node.children == null || node.children.Count == 0");
-            ProcessGenericNode(node, stack + node.ToString(), funcProcessor, "Action_" + node.name);
+            LOG.Debug(stack + node);
+            ProcessGenericNode(node, stack + node, funcProcessor, "Action_" + node.name);
             return true;
         }
 
         public bool Process_Condition(Node node, String stack)
         {
             Assert.True(node.children == null || node.children.Count == 0, "node.children == null || node.children.Count == 0");
-            return ProcessGenericNode(node, stack + node.ToString(), funcProcessor, "Condition_" + node.name);
-        }
-
-        public bool Process_TreeLink(Node node, String stack)
-        {
-            Assert.True(node.children == null || node.children.Count == 0, "node.children == null || node.children.Count == 0");
-            Assert.True(node.name != null && !"".Equals(node.name), "node.name != null && !\"\".Equals(node.name)");
-            Process_Tree(node.name, stack);
-            return true;
+            bool result = ProcessGenericNode(node, stack + node, funcProcessor, "Condition_" + node.name);
+            LOG.Debug(stack + node + " : " + result);
+            return result;
         }
 
         private bool ProcessGenericNode(Node node, String stack)
@@ -166,7 +144,6 @@ namespace najsvan
                 reflectionCache.Add(simpleSignature, method);
             }
 
-            LOG.Debug(stack);
             Object invokeResult = method.Invoke(processor, new object[] { node, stack });
             bool methodResult;
 
