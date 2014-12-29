@@ -63,6 +63,7 @@ namespace najsvan
                     LOG.Error(e.ToString());
                     mutableContext.disableTickProcessing = true;
                 }
+                producedContext.Clear();
                 mutableContext.lastTickProcessed = currentTick;
             }
         }
