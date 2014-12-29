@@ -54,7 +54,6 @@ namespace najsvan
             {
                 try
                 {
-                    LOG.Debug("forrest.Tick()");
                     forrest.Tick();
                 }
                 catch (Exception e)
@@ -68,104 +67,61 @@ namespace najsvan
             }
         }
 
-        public delegate bool Handler();
-
-        public bool LoggingAspect(Node node, String stack, Handler handler)
+        public void Action_CheckEnvironment(Node node, String stack)
         {
-            bool reasult = handler();
-            LOG.Debug(stack + " : " + reasult);
-            return reasult;
         }
 
-        public bool Action_CheckEnvironment(Node node, String stack)
+        public void Action_CastOnlySafe(Node node, String stack)
         {
-            return LoggingAspect(node, stack, () =>
-            {
-                return true;
-            });
         }
 
-        public bool Action_CastOnlySafe(Node node, String stack)
+        public void Action_OnlySafe(Node node, String stack)
         {
-            return LoggingAspect(node, stack, () =>
+            if (mutableContext.leader == null)
             {
-                return true;
-            });
-        }
-
-        public bool Action_AnythingSafe(Node node, String stack)
-        {
-            return LoggingAspect(node, stack, () =>
-            {
-                if (mutableContext.leader == null)
+                List<Obj_AI_Hero> allyHeroes =
+                    producedContext.Get(ProducedContextKey.AllyHeroes) as List<Obj_AI_Hero>;
+                if (allyHeroes.Count > 0)
                 {
-                    List<Obj_AI_Hero> allyHeroes =
-                        producedContext.Get(ProducedContextKey.AllyHeroes) as List<Obj_AI_Hero>;
-                    if (allyHeroes.Count > 0)
-                    {
-                        mutableContext.leader = allyHeroes[0];
-                    }
+                    mutableContext.leader = allyHeroes[0];
                 }
-
-                return true;
-            });
+            }
         }
 
-        public bool Action_DangerCounterMeasures(Node node, String stack)
+        public void Action_DangerCounterMeasures(Node node, String stack)
         {
-            return LoggingAspect(node, stack, () =>
-            {
-                return true;
-            });
         }
 
-        public bool Action_PanicCounterMeasures(Node node, String stack)
+        public void Action_PanicCounterMeasures(Node node, String stack)
         {
-            return LoggingAspect(node, stack, () =>
-            {
-                return true;
-            });
         }
 
-        public bool Action_AutoAttack(Node node, String stack)
+        public void Action_AutoAttack(Node node, String stack)
         {
-            return LoggingAspect(node, stack, () =>
-            {
-                return true;
-            });
         }
 
-        public bool Action_CastAnything(Node node, String stack)
+        public void Action_CastAnything(Node node, String stack)
         {
-            return LoggingAspect(node, stack, () =>
-            {
-                return true;
-            });
         }
 
-        public bool Action_Move(Node node, String stack)
+        public void Action_Move(Node node, String stack)
         {
-            return LoggingAspect(node, stack, () =>
-            {
                 immutableContext.myHero.IssueOrder(GameObjectOrder.MoveTo, mutableContext.leader);
-                return true;
-            });
         }
 
         public bool Condition_IsInDanger(Node node, String stack)
         {
-            return LoggingAspect(node, stack, () =>
-            {
-                return false;
-            });
+            return false;
         }
 
         public bool Condition_IsInPanic(Node node, String stack)
         {
-            return LoggingAspect(node, stack, () =>
-            {
-                return false;
-            });
+            return false;
+        }
+
+        public bool Condition_IsNotRegenerating(Node node, String stack)
+        {
+            return true;
         }
 
         public delegate bool HeroCondition(Obj_AI_Hero hero);

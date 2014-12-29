@@ -26,6 +26,7 @@ namespace najsvan
 
         public void Tick()
         {
+            LOG.Debug("Tick()");
             Process_Tree(firstTreeName, "/");
         }
 
@@ -127,33 +128,14 @@ namespace najsvan
         public bool Process_Action(Node node, String stack)
         {
             Assert.True(node.children == null || node.children.Count == 0, "node.children == null || node.children.Count == 0");
-            bool result = ProcessGenericNode(node, stack + node.ToString(), funcProcessor, "Action_" + node.name);
-            bool parsedSim;
-
-            if (node.sim != null && !"".Equals(node.sim) && Boolean.TryParse(node.sim, out parsedSim))
-            {
-                return parsedSim;
-            }
-            else
-            {
-                return result;
-            }
+            ProcessGenericNode(node, stack + node.ToString(), funcProcessor, "Action_" + node.name);
+            return true;
         }
 
         public bool Process_Condition(Node node, String stack)
         {
             Assert.True(node.children == null || node.children.Count == 0, "node.children == null || node.children.Count == 0");
-            bool result = ProcessGenericNode(node, stack + node.ToString(), funcProcessor, "Condition_" + node.name);
-            bool parsedSim;
-
-            if (node.sim != null && !"".Equals(node.sim) && Boolean.TryParse(node.sim, out parsedSim))
-            {
-                return parsedSim;
-            }
-            else
-            {
-                return result;
-            }
+            return ProcessGenericNode(node, stack + node.ToString(), funcProcessor, "Condition_" + node.name);
         }
 
         public bool Process_TreeLink(Node node, String stack)
@@ -181,7 +163,18 @@ namespace najsvan
                 reflectionCache.Add(simpleSignature, method);
             }
 
-            return (bool)method.Invoke(processor, new object[] { node, stack });
+            LOG.Debug(stack);
+            Object invokeResult = method.Invoke(processor, new object[] { node, stack });
+            bool methodResult;
+
+            if (invokeResult != null && Boolean.TryParse(invokeResult.ToString(), out methodResult))
+            {
+                return methodResult;
+            }
+            else
+            {
+                return true;
+            }
         }
     }
 
