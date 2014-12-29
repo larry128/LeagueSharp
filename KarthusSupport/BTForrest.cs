@@ -32,13 +32,13 @@ namespace najsvan
         public bool Process_Tree(String treeName, String stack)
         {
             Tree tree;
-            String simpleTreeHash = funcProcessor.GetHashCode() + treeName;
-            if (!treeCache.TryGetValue(simpleTreeHash, out tree)) {
+            String simpleTreeKey = funcProcessor.GetHashCode() + stack + treeName;
+            if (!treeCache.TryGetValue(simpleTreeKey, out tree)) {
                 LOG.Debug("JSONHelper.Deserialize " + treeName);
                 tree = JSONHelper.Deserialize<Tree>(LeagueSharp.Common.Config.LeagueSharpDirectory + "/bt/" + funcProcessor.GetType().Name + "/" + treeName + ".json");
                 LOG.Debug("JSONHelper.Deserialize done");
                 Assert.True(tree != null, "JSONHelper.Deserialize<Tree>: null for : " + treeName + " in " + funcProcessor.GetType().Name);
-                treeCache.Add(simpleTreeHash, tree);
+                treeCache.Add(simpleTreeKey, tree);
             }
 
             // expected to have one "Start" node
