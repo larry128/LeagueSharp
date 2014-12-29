@@ -33,7 +33,8 @@ namespace najsvan
         {
             Tree tree;
             String simpleTreeKey = funcProcessor.GetHashCode() + stack + treeName;
-            if (!treeCache.TryGetValue(simpleTreeKey, out tree)) {
+            if (!treeCache.TryGetValue(simpleTreeKey, out tree))
+            {
                 LOG.Debug("JSONHelper.Deserialize " + treeName);
                 String funcProcessorName = funcProcessor.GetType().Name;
                 tree = JSONHelper.Deserialize<Tree>(LeagueSharp.Common.Config.LeagueSharpDirectory + "/bt/" + funcProcessorName + "/" + treeName + ".json");
@@ -108,7 +109,7 @@ namespace najsvan
 
         public bool Decorator_Not(Node node, String stack)
         {
-            return ! ProcessGenericNode(node, stack);
+            return !ProcessGenericNode(node, stack);
         }
 
         public bool Decorator_True(Node node, String stack)
@@ -126,13 +127,33 @@ namespace najsvan
         public bool Process_Action(Node node, String stack)
         {
             Assert.True(node.children == null || node.children.Count == 0, "node.children == null || node.children.Count == 0");
-            return ProcessGenericNode(node, stack + node.ToString(), funcProcessor, "Action_" + node.name);
+            bool result = ProcessGenericNode(node, stack + node.ToString(), funcProcessor, "Action_" + node.name);
+            bool parsedSim;
+
+            if (node.sim != null && !"".Equals(node.sim) && Boolean.TryParse(node.sim, out parsedSim))
+            {
+                return parsedSim;
+            }
+            else
+            {
+                return result;
+            }
         }
 
         public bool Process_Condition(Node node, String stack)
         {
             Assert.True(node.children == null || node.children.Count == 0, "node.children == null || node.children.Count == 0");
-            return ProcessGenericNode(node, stack + node.ToString(), funcProcessor, "Condition_" + node.name);
+            bool result = ProcessGenericNode(node, stack + node.ToString(), funcProcessor, "Condition_" + node.name);
+            bool parsedSim;
+
+            if (node.sim != null && !"".Equals(node.sim) && Boolean.TryParse(node.sim, out parsedSim))
+            {
+                return parsedSim;
+            }
+            else
+            {
+                return result;
+            }
         }
 
         public bool Process_TreeLink(Node node, String stack)
@@ -185,6 +206,9 @@ namespace najsvan
 
         [DataMember]
         public String type { get; protected set; }
+
+        [DataMember]
+        public String sim { get; protected set; }
 
         public override String ToString()
         {

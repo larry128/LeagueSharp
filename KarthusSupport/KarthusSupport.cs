@@ -30,7 +30,7 @@ namespace najsvan
         private void Game_OnGameLoad(EventArgs args)
         {
             LOG.Info("Game_OnGameLoad");
-            forrest = new BTForrest("First", this);
+            forrest = new BTForrest("Start", this);
             producedContext = new ProducedContext();
             mutableContext = new MutableContext();
             immutableContext = new ImmutableContext();
@@ -77,35 +77,95 @@ namespace najsvan
             return reasult;
         }
 
-        public bool Action_FollowLeader(Node node, String stack)
+        public bool Action_CheckEnvironment(Node node, String stack)
         {
             return LoggingAspect(node, stack, () =>
             {
-                immutableContext.myHero.IssueOrder(GameObjectOrder.MoveTo, mutableContext.leader.ServerPosition);
                 return true;
             });
         }
 
-        public bool Action_PickLeader(Node node, String stack)
+        public bool Action_CastOnlySafe(Node node, String stack)
         {
             return LoggingAspect(node, stack, () =>
             {
-                List<Obj_AI_Hero> allyHeroes = (List<Obj_AI_Hero>)producedContext.Get(ProducedContextKey.AllyHeroes);
-                if (allyHeroes.Count > 0)
-                {
-                    mutableContext.leader = allyHeroes[0];
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
+                return true;
             });
         }
 
-        public bool Condition_IsLeaderKnown(Node node, String stack)
+        public bool Action_AnythingSafe(Node node, String stack)
         {
-            return LoggingAspect(node, stack, () => mutableContext.leader != null);
+            return LoggingAspect(node, stack, () =>
+            {
+                if (mutableContext.leader == null)
+                {
+                    List<Obj_AI_Hero> allyHeroes =
+                        producedContext.Get(ProducedContextKey.AllyHeroes) as List<Obj_AI_Hero>;
+                    if (allyHeroes.Count > 0)
+                    {
+                        mutableContext.leader = allyHeroes[0];
+                    }
+                }
+
+                return true;
+            });
+        }
+
+        public bool Action_DangerCounterMeasures(Node node, String stack)
+        {
+            return LoggingAspect(node, stack, () =>
+            {
+                return true;
+            });
+        }
+
+        public bool Action_PanicCounterMeasures(Node node, String stack)
+        {
+            return LoggingAspect(node, stack, () =>
+            {
+                return true;
+            });
+        }
+
+        public bool Action_AutoAttack(Node node, String stack)
+        {
+            return LoggingAspect(node, stack, () =>
+            {
+                return true;
+            });
+        }
+
+        public bool Action_CastAnything(Node node, String stack)
+        {
+            return LoggingAspect(node, stack, () =>
+            {
+                return true;
+            });
+        }
+
+        public bool Action_Move(Node node, String stack)
+        {
+            return LoggingAspect(node, stack, () =>
+            {
+                immutableContext.myHero.IssueOrder(GameObjectOrder.MoveTo, mutableContext.leader);
+                return true;
+            });
+        }
+
+        public bool Condition_IsInDanger(Node node, String stack)
+        {
+            return LoggingAspect(node, stack, () =>
+            {
+                return false;
+            });
+        }
+
+        public bool Condition_IsInPanic(Node node, String stack)
+        {
+            return LoggingAspect(node, stack, () =>
+            {
+                return false;
+            });
         }
 
         public delegate bool HeroCondition(Obj_AI_Hero hero);
