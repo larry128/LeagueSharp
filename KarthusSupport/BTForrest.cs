@@ -35,9 +35,10 @@ namespace najsvan
             String simpleTreeKey = funcProcessor.GetHashCode() + stack + treeName;
             if (!treeCache.TryGetValue(simpleTreeKey, out tree)) {
                 LOG.Debug("JSONHelper.Deserialize " + treeName);
-                tree = JSONHelper.Deserialize<Tree>(LeagueSharp.Common.Config.LeagueSharpDirectory + "/bt/" + funcProcessor.GetType().Name + "/" + treeName + ".json");
+                String funcProcessorName = funcProcessor.GetType().Name;
+                tree = JSONHelper.Deserialize<Tree>(LeagueSharp.Common.Config.LeagueSharpDirectory + "/bt/" + funcProcessorName + "/" + treeName + ".json");
                 LOG.Debug("JSONHelper.Deserialize done");
-                Assert.True(tree != null, "JSONHelper.Deserialize<Tree>: null for : " + treeName + " in " + funcProcessor.GetType().Name);
+                Assert.True(tree != null, "JSONHelper.Deserialize<Tree>: null for : " + treeName + " in " + funcProcessorName);
                 treeCache.Add(simpleTreeKey, tree);
             }
 
