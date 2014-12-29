@@ -57,8 +57,12 @@
   <ItemGroup>
     <Compile Include="BTForrest.cs" />
     <Compile Include="Assert.cs" />
+    <Compile Include="ImmutableContext.cs" />
+    <Compile Include="MutableContext.cs" />
+    <Compile Include="ProducedContext.cs" />
     <Compile Include="KarthusSupport.cs" />
     <Compile Include="Logger.cs" />
+    <Compile Include="ProducedContextKey.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

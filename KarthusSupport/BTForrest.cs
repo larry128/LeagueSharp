@@ -10,9 +10,11 @@ namespace najsvan
 {
     public class BTForrest
     {
-        private Dictionary<String, MethodInfo> reflectionCache = new Dictionary<String, MethodInfo>();
-        private Object funcProcessor;
-        private String firstTreeName;
+        private static readonly Logger LOG = Logger.GetLogger("BTForrest");
+        private readonly Dictionary<String, MethodInfo> reflectionCache = new Dictionary<String, MethodInfo>();
+        private readonly Dictionary<String, Tree> treeCache = new Dictionary<String, Tree>();
+        private readonly Object funcProcessor;
+        private readonly String firstTreeName;
 
         public BTForrest(String firstTreeName, Object funcProcessor)
         {
@@ -28,9 +30,18 @@ namespace najsvan
 
         public bool Process_Tree(String treeName, String stack)
         {
-            Tree firstTree = JSONHelper.Deserialize<Tree>(LeagueSharp.Common.Config.LeagueSharpDirectory + "/bt/" + funcProcessor.GetType().Name + "/" + treeName + ".json");
+            Tree tree;
+            String simpleTreeHash = funcProcessor.GetHashCode() + treeName;
+            if (!treeCache.TryGetValue(simpleTreeHash, out tree)) {
+                LOG.Debug("JSONHelper.Deserialize " + treeName);
+                tree = JSONHelper.Deserialize<Tree>(LeagueSharp.Common.Config.LeagueSharpDirectory + "/bt/" + funcProcessor.GetType().Name + "/" + treeName + ".json");
+                LOG.Debug("JSONHelper.Deserialize done");
+                Assert.True(tree != null, "JSONHelper.Deserialize<Tree>: null for : " + treeName + " in " + funcProcessor.GetType().Name);
+                treeCache.Add(simpleTreeHash, tree);
+            }
+
             // expected to have one "Start" node
-            List<Node> nodes = firstTree.nodes;
+            List<Node> nodes = tree.nodes;
             Assert.True(nodes != null && nodes.Count == 1, "nodes != null && nodes.Count == 1");
             Node start = nodes[0];
             Assert.True(start != null, "start != null");
@@ -90,7 +101,7 @@ namespace najsvan
         public bool Process_Decorator(Node node, String stack)
         {
             Assert.True(node.children != null && node.children.Count == 1, "node.children != null && node.children.Count == 1");
-            return ProcessGenericNode(node, stack + node.ToString(), this, "Decorator_" + node.name);
+            return ProcessGenericNode(node.children[0], stack + node.ToString(), this, "Decorator_" + node.name);
         }
 
         public bool Decorator_Not(Node node, String stack)

@@ -5,10 +5,11 @@ namespace najsvan
 {
     public class Logger
     {
-        private static String LOG_PATH_PREFIX = LeagueSharp.Common.Config.LeagueSharpDirectory + "/Logs/";
-        private static String LOG_PATH_POSTFIX = "_runtime.log";
+        private const bool DEBUG_ENABLED = false;
+        private static readonly String LOG_PATH_PREFIX = LeagueSharp.Common.Config.LeagueSharpDirectory + "/Logs/";
+        private const String LOG_PATH_POSTFIX = "_runtime.log";
 
-        private String logPath;
+        private readonly String logPath;
 
         private Logger(String logPath)
         {
@@ -28,6 +29,14 @@ namespace najsvan
         public void Info(String message)
         {
             Log("INFO", message);
+        }
+
+        public void Debug(String message)
+        {
+            if (DEBUG_ENABLED)
+            {
+                Log("DEBUG", message);
+            }
         }
 
         private void Log(String severity, String message)
