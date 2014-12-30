@@ -58,7 +58,7 @@
     <Compile Include="JSONBTree.cs" />
     <Compile Include="Assert.cs" />
     <Compile Include="Context.cs" />
-    <Compile Include="InDanger.cs" />
+    <Compile Include="Statistics.cs" />
     <Compile Include="ProducedContext.cs" />
     <Compile Include="GenericBot.cs" />
     <Compile Include="Logger.cs" />

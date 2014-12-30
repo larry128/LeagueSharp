@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using LeagueSharp;
 using LeagueSharp.Common;
+using SharpDX;
 
 namespace najsvan
 {
@@ -15,15 +16,21 @@ namespace najsvan
 
         protected GenericBot()
         {
-            CustomEvents.Game.OnGameEnd += Game_OnGameEnd;
-            CustomEvents.Game.OnGameLoad += Game_OnGameLoad;
-            Game.OnGameUpdate += Game_OnGameUpdate;
-            Game.OnWndProc += Game_OnWndProc;
+            try
+            {
+                Init();
+            }
+            catch (Exception e)
+            {
+                Game.PrintChat(e.GetType().Name + " : " + e.Message);
+                LOG.Error(e.ToString());
+                context.disableTickProcessing = true;
+            }
         }
 
         private void Game_OnWndProc(WndEventArgs args)
         {
-            if (args.Msg == (ulong) WindowsMessages.WM_KEYDOWN)
+            if (args.Msg == (ulong)WindowsMessages.WM_KEYDOWN)
             {
                 if (args.WParam == 0x75) // F6 - test shit
                 {
@@ -38,18 +45,22 @@ namespace najsvan
             // quit game somehow
         }
 
-        private void Game_OnGameLoad(EventArgs args)
+        public void Init()
         {
-            LOG.Info("Game_OnGameLoad");
-            bTree = new JSONBTree(this);
+            LOG.Info("Init()");
+            Game.PrintChat(this.GetType().Name + " - Loading");
+            bTree = new JSONBTree(this, "GenericBot");
             context = new Context();
             SetSpawns();
 
             producedContext = new ProducedContext();
             SetProducedContextCallbacks();
 
-            LOG.Info("Game_OnGameLoad - GenericBot - Loaded");
-            Game.PrintChat("GenericBot - Loaded");
+            CustomEvents.Game.OnGameEnd += Game_OnGameEnd;
+            Game.OnGameUpdate += Game_OnGameUpdate;
+            Game.OnWndProc += Game_OnWndProc;
+
+            Game.PrintChat(this.GetType().Name + " - Loaded");
         }
 
         private void SetProducedContextCallbacks()
@@ -98,38 +109,103 @@ namespace najsvan
             }
         }
 
-        public abstract void Action_ZombieCast(Node node, String stack);
-
-        public void Action_CheckEnvironment(Node node, String stack)
+        public void Action_LevelSpells(Node node, String stack)
         {
+
         }
 
-        public void Action_OnlySafeStuff(Node node, String stack)
+        public void Action_Buy(Node node, String stack)
         {
+
         }
 
-        public void Action_OnlySafeCast(Node node, String stack)
+        public bool Condition_IsZombie(Node node, String stack)
         {
+            return context.myHero.IsZombie;
+        }
+
+        public virtual void Action_ZombieCast(Node node, String stack)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool Condition_IsDead(Node node, String stack)
+        {
+            return context.myHero.IsDead;
+        }
+
+        public void Action_DropWard(Node node, String stack)
+        {
+
+        }
+
+        public bool Condition_WillInterruptSelf(Node node, String stack)
+        {
+            return false;
+        }
+
+        public void Action_CastAnythingSafe(Node node, String stack)
+        {
+
+        }
+
+        public bool Condition_BeReckless(Node node, String stack)
+        {
+            return false;
         }
 
         public void Action_RecklessCast(Node node, String stack)
         {
-        }
 
-        public void Action_RecklessMove(Node node, String stack)
-        {
         }
 
         public void Action_RecklessAutoAttack(Node node, String stack)
         {
+
+        }
+
+        public void Action_RecklessMove(Node node, String stack)
+        {
+
+        }
+
+        public bool Condition_IsInPanic(Node node, String stack)
+        {
+            return false;
+        }
+
+        public void Action_PanicCounterMeasures(Node node, String stack)
+        {
+
+        }
+
+        public bool Condition_IsInDanger(Node node, String stack)
+        {
+            return false;
+        }
+
+        public void Action_DangerCounterMeasures(Node node, String stack)
+        {
+
         }
 
         public void Action_AutoAttack(Node node, String stack)
         {
+
         }
 
         public void Action_CastAnything(Node node, String stack)
         {
+
+        }
+
+        public bool Condition_IsRegenerating(Node node, String stack)
+        {
+            if (IsInSpawn(context.myHero) && (context.myHero.Health != context.myHero.MaxHealth || context.myHero.Mana != context.myHero.MaxMana))
+            {
+                return true;
+            }
+            return false;
         }
 
         public void Action_StopMoving(Node node, String stack)
@@ -140,45 +216,22 @@ namespace najsvan
             }
         }
 
+        public bool Action_MoveToWard(Node node, String stack)
+        {
+            return false;
+        }
+
         public void Action_Move(Node node, String stack)
         {
-            if (context.moveTo.IsValid() && (!context.myHero.IsMoving || context.moveTo.Distance(context.myHero.Path.Last(), true) < context.myHero.BoundingRadius))
+            // figure out where to move
+        }
+
+        private void MoveToDestination(Vector3 destination)
+        {
+            if (destination.IsValid() && (!context.myHero.IsMoving || destination.Distance(context.myHero.Path.Last(), true) < context.myHero.BoundingRadius))
             {
-                context.myHero.IssueOrder(GameObjectOrder.MoveTo, context.moveTo);
+                context.myHero.IssueOrder(GameObjectOrder.MoveTo, destination);
             }
-        }
-
-        public bool Condition_IsZombie(Node node, String stack)
-        {
-            return context.myHero.IsZombie;
-        }
-
-        public bool Condition_WillInterruptSelf(Node node, String stack)
-        {
-            return false;
-        }
-
-        public bool Condition_BeReckless(Node node, String stack)
-        {
-            return false;
-        }
-
-        public bool Condition_IsInDanger(Node node, String stack)
-        {
-            return false;
-        }
-
-        public bool Condition_IsInPanic(Node node, String stack)
-        {
-            return false;
-        }
-
-        public bool Condition_IsRegenerating(Node node, String stack)
-        {
-            if (IsInSpawn(context.myHero) && (context.myHero.Health != context.myHero.MaxHealth || context.myHero.Mana != context.myHero.MaxMana)) { 
-                return true;
-            }
-            return false;
         }
 
         public bool IsInSpawn(Obj_AI_Hero hero)

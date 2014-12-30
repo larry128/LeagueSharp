@@ -14,6 +14,7 @@ namespace najsvan
         static void Game_OnGameLoad(EventArgs args)
         {
             String champName = ObjectManager.Player.ChampionName;
+            Game.PrintChat("Current champ: " + champName);
             switch (champName)
             {
                 case "Karthus":

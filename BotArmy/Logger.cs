@@ -5,20 +5,21 @@ namespace najsvan
 {
     public class Logger
     {
-        public static readonly bool DEBUG_ENABLED = true;
+        public static bool debugEnabled = false;
+        public readonly String loggerName;
         private static readonly String LOG_PATH_PREFIX = LeagueSharp.Common.Config.LeagueSharpDirectory + "/Logs/";
         private const String LOG_PATH_POSTFIX = "_runtime.log";
-
         private readonly String logPath;
 
-        private Logger(String logPath)
+        private Logger(String loggerName)
         {
-            this.logPath = logPath;
+            this.loggerName = loggerName;
+            this.logPath = LOG_PATH_PREFIX + loggerName + LOG_PATH_POSTFIX;
         }
 
         public static Logger GetLogger(String loggerName)
         {
-            return new Logger(LOG_PATH_PREFIX + loggerName + LOG_PATH_POSTFIX);
+            return new Logger(loggerName);
         }
 
         public void Error(String message)
@@ -33,7 +34,7 @@ namespace najsvan
 
         public void Debug(String message)
         {
-            if (DEBUG_ENABLED)
+            if (debugEnabled)
             {
                 Log("DEBUG", message);
             }

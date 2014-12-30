@@ -8,8 +8,5 @@ namespace najsvan
 {
     public class KarthusBot : GenericBot
     {
-        public override void Action_ZombieCast(Node node, string stack)
-        {
-        }
     }
 }

@@ -12,16 +12,17 @@ namespace najsvan
     public class JSONBTree
     {
         private static readonly Logger LOG = Logger.GetLogger("JSONBTree");
+        private static readonly Statistics STAT = Statistics.GetStatistics(LOG);
         private readonly Dictionary<String, MethodInfo> reflectionCache = new Dictionary<String, MethodInfo>();
         private readonly Object funcProcessor;
         private readonly String treeName;
         private readonly Tree tree;
 
-        public JSONBTree(Object funcProcessor)
+        public JSONBTree(Object funcProcessor, String treeName)
         {
             Assert.True(funcProcessor != null, "funcProcessor != null");
             this.funcProcessor = funcProcessor;
-            this.treeName = funcProcessor.GetType().Name;
+            this.treeName = treeName;
             this.tree = JSONHelper.Deserialize<Tree>(LeagueSharp.Common.Config.LeagueSharpDirectory + "/bt/" + treeName + ".json");
             Assert.True(tree != null, "JSONHelper.Deserialize<Tree>: null for : " + treeName);
         }
@@ -113,16 +114,20 @@ namespace najsvan
 
         public bool Process_Action(Node node, String stack)
         {
-            Assert.True(node.children == null || node.children.Count == 0, "node.children == null || node.children.Count == 0");
-            LOG.Debug(stack + node);
-            ProcessGenericNode(node, stack + node, funcProcessor, "Action_" + node.name);
-            return true;
+            return ProcessFunc(node, stack, "Action_");
         }
 
         public bool Process_Condition(Node node, String stack)
         {
+            return ProcessFunc(node, stack, "Condition_");
+        }
+
+        private bool ProcessFunc(Node node, string stack, String prefix)
+        {
             Assert.True(node.children == null || node.children.Count == 0, "node.children == null || node.children.Count == 0");
-            bool result = ProcessGenericNode(node, stack + node, funcProcessor, "Condition_" + node.name);
+            String methodName = prefix + node.name;
+            bool result = ProcessGenericNode(node, stack + node, funcProcessor, methodName);
+            STAT.Increment(treeName + "." + methodName);
             LOG.Debug(stack + node + " : " + result);
             return result;
         }
@@ -139,7 +144,7 @@ namespace najsvan
             if (!reflectionCache.TryGetValue(simpleSignature, out method))
             {
                 Type type = processor.GetType();
-                method = type.GetMethod(methodName);
+                method = type.GetRuntimeMethod(methodName, new Type[] {node.GetType(), stack.GetType()});
                 Assert.True(method != null, "GetMethod: null for : " + methodName + " in " + type.Name);
                 reflectionCache.Add(simpleSignature, method);
             }
