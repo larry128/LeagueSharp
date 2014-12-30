@@ -105,7 +105,7 @@ namespace najsvan
 
         private void Game_OnWndProc(WndEventArgs args)
         {
-            if (args.Msg == (ulong)WindowsMessages.WM_KEYDOWN)
+            if (args.Msg == (ulong) WindowsMessages.WM_KEYDOWN)
             {
                 if (args.WParam == 0x75) // F6 - test shit
                 {
@@ -125,6 +125,12 @@ namespace najsvan
             context.currentTick = Environment.TickCount;
             if (context.currentTick - context.lastTickProcessed > context.tickDelay)
             {
+                if (serverInteractions.Count > 0)
+                {
+                    GetLogger().Debug("Not all serverInteractions processed, skipping tick.");
+                    return;
+                }
+
                 ProcessTick();
             }
         }
@@ -134,12 +140,6 @@ namespace najsvan
         {
             try
             {
-                if (serverInteractions.Count > 0)
-                {
-                    GetLogger().Debug("Not all serverInteractions processed, skipping tick.");
-                    return;
-                }
-
                 bTree.Tick();
 
                 // process server interactions
@@ -183,7 +183,6 @@ namespace najsvan
 
         public void Action_Scan(Node node, String stack)
         {
-
         }
 
         public void Action_LevelSpells(Node node, String stack)
@@ -210,18 +209,22 @@ namespace najsvan
                     foreach (var consumable in context.shoppingListConsumables)
                     {
                         var consumableLocal = consumable;
-                        serverInteractions.Add(() => { if (!context.myHero.BuyItem(consumableLocal)) context.lastFailedBuy = context.currentTick; });
+                        serverInteractions.Add(
+                            () =>
+                            {
+                                if (!context.myHero.BuyItem(consumableLocal)) context.lastFailedBuy = context.currentTick;
+                            });
                     }
-                    context.shoppingListConsumables = new ItemId[] { };
+                    context.shoppingListConsumables = new ItemId[] {};
                 }
 
                 var nextToBuy = GetNextBuyItemId();
 
                 if (context.myHero.InventoryItems.Count() == 7)
                 {
-                    InventorySlot wardSlot = GetItemSlot(ItemId.Stealth_Ward);
-                    InventorySlot manaPotSlot = GetItemSlot(ItemId.Mana_Potion);
-                    InventorySlot healthPotSlot = GetItemSlot(ItemId.Health_Potion);
+                    var wardSlot = GetItemSlot(ItemId.Stealth_Ward);
+                    var manaPotSlot = GetItemSlot(ItemId.Mana_Potion);
+                    var healthPotSlot = GetItemSlot(ItemId.Health_Potion);
                     if (wardSlot != null)
                     {
                         serverInteractions.Add(() => { context.myHero.SellItem(wardSlot.Slot); });
@@ -237,28 +240,36 @@ namespace najsvan
                 }
                 else
                 {
-
-                if (nextToBuy != ItemId.Unknown)
-                {
-                    serverInteractions.Add(() => { if (!context.myHero.BuyItem(nextToBuy)) context.lastFailedBuy = context.currentTick; });
-                }
-                else if (GetMinutesSince(context.lastElixirBought) > 3)
-                {
-                    serverInteractions.Add(() => { if (!context.myHero.BuyItem(context.shoppingListElixir)) context.lastFailedBuy = context.currentTick; });
-                    context.lastElixirBought = context.currentTick;
-                }
+                    if (nextToBuy != ItemId.Unknown)
+                    {
+                        serverInteractions.Add(
+                            () =>
+                            {
+                                if (!context.myHero.BuyItem(nextToBuy)) context.lastFailedBuy = context.currentTick;
+                            });
                     }
+                    else if (GetMinutesSince(context.lastElixirBought) > 3)
+                    {
+                        serverInteractions.Add(
+                            () =>
+                            {
+                                if (!context.myHero.BuyItem(context.shoppingListElixir))
+                                    context.lastFailedBuy = context.currentTick;
+                            });
+                        context.lastElixirBought = context.currentTick;
+                    }
+                }
             }
         }
 
         private int GetSecondsSince(int actionTookPlaceAt)
         {
-            return (context.currentTick - actionTookPlaceAt) / 1000;
+            return (context.currentTick - actionTookPlaceAt)/1000;
         }
 
         private int GetMinutesSince(int actionTookPlaceAt)
         {
-            return (context.currentTick - actionTookPlaceAt) / 1000 / 60;
+            return (context.currentTick - actionTookPlaceAt)/1000/60;
         }
 
         private InventorySlot GetItemSlot(ItemId itemId)
@@ -327,7 +338,6 @@ namespace najsvan
 
         public void Action_DropWard(Node node, String stack)
         {
-            
         }
 
         public bool Condition_WillInterruptSelf(Node node, String stack)
