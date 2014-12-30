@@ -184,7 +184,8 @@ namespace najsvan
 
         public void Action_Buy(Node node, String stack)
         {
-            if (context.myHero.InShop() || context.myHero.IsDead)
+            // if you fail to buy at any point you have a 10 seconds timeout
+            if ((context.myHero.InShop() || context.myHero.IsDead) && GetSecondsSince(context.lastFailedBuy) > 10)
             {
                 // handle initial consumables first
                 if (context.shoppingListConsumables.Count() > 0 && context.myHero.Level == 1)
@@ -192,28 +193,44 @@ namespace najsvan
                     foreach (var consumable in context.shoppingListConsumables)
                     {
                         var consumableLocal = consumable;
-                        serverInteractions.Add(() => { context.myHero.BuyItem(consumableLocal); });
+                        serverInteractions.Add(() => { if (!context.myHero.BuyItem(consumableLocal)) context.lastFailedBuy = context.currentTick; });
                     }
                     context.shoppingListConsumables = new ItemId[] { };
                 }
 
                 var nextToBuy = GetNextBuyItemId();
-                // buy some earlygame wards
-                if (GetItemSlot(ItemId.Sightstone) == null && GetItemSlot(ItemId.Ruby_Sightstone) == null &&
-                    GetItemSlot(ItemId.Stealth_Ward) == null && context.myHero.GoldCurrent < 300 &&
-                    context.myHero.Level > 1 && context.myHero.Level < 6)
+
+                if (context.myHero.InventoryItems.Count() == 7)
                 {
-                    serverInteractions.Add(() => { context.myHero.BuyItem(ItemId.Stealth_Ward); });
+                    InventorySlot wardSlot = GetItemSlot(ItemId.Stealth_Ward);
+                    InventorySlot manaPotSlot = GetItemSlot(ItemId.Mana_Potion);
+                    InventorySlot healthPotSlot = GetItemSlot(ItemId.Health_Potion);
+                    if (wardSlot != null)
+                    {
+                        serverInteractions.Add(() => { context.myHero.SellItem(wardSlot.Slot); });
+                    }
+                    else if (manaPotSlot != null)
+                    {
+                        serverInteractions.Add(() => { context.myHero.SellItem(manaPotSlot.Slot); });
+                    }
+                    else if (healthPotSlot != null)
+                    {
+                        serverInteractions.Add(() => { context.myHero.SellItem(healthPotSlot.Slot); });
+                    }
                 }
-                else if (nextToBuy != ItemId.Unknown)
+                else
                 {
-                    serverInteractions.Add(() => { context.myHero.BuyItem(nextToBuy); });
+
+                if (nextToBuy != ItemId.Unknown)
+                {
+                    serverInteractions.Add(() => { if (!context.myHero.BuyItem(nextToBuy)) context.lastFailedBuy = context.currentTick; });
                 }
                 else if (GetMinutesSince(context.lastElixirBought) > 3)
                 {
-                    serverInteractions.Add(() => { context.myHero.BuyItem(context.shoppingListElixir); });
+                    serverInteractions.Add(() => { if (!context.myHero.BuyItem(context.shoppingListElixir)) context.lastFailedBuy = context.currentTick; });
                     context.lastElixirBought = context.currentTick;
                 }
+                    }
             }
         }
 
