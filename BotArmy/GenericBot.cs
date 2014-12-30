@@ -12,7 +12,9 @@ namespace najsvan
         protected Context context;
         protected ProducedContext producedContext;
         private readonly JSONBTree bTree;
-        private readonly Menu config; 
+        private readonly Menu config;
+        private delegate void ServerInteraction();
+        private readonly List<ServerInteraction> serverInteractions = new List<ServerInteraction>();
 
         protected GenericBot(Context context)
         {
@@ -40,10 +42,15 @@ namespace najsvan
                 Game.PrintChat(e.GetType().Name + " : " + e.Message);
                 GetLogger().Error(e.ToString());
 
-                CustomEvents.Game.OnGameEnd -= Game_OnGameEnd;
-                Game.OnGameUpdate -= Game_OnGameUpdate;
-                Game.OnWndProc -= Game_OnWndProc;
+                StopProcessing();
             }
+        }
+
+        private void StopProcessing()
+        {
+            CustomEvents.Game.OnGameEnd -= Game_OnGameEnd;
+            Game.OnGameUpdate -= Game_OnGameUpdate;
+            Game.OnWndProc -= Game_OnWndProc;
         }
 
         private void SetupProducedContextCallbacks()
@@ -55,10 +62,10 @@ namespace najsvan
         private void SetupContext()
         {
             Assert.True(context.levelSpellsOrder.Count() > 0, "context.levelSpellsOrder is not setup");
-            autoLevel = new AutoLevel(context.levelSpellsOrder);
 
             foreach (Obj_SpawnPoint spawn in ObjectManager.Get<Obj_SpawnPoint>())
             {
+                Assert.True(spawn.IsValid<Obj_SpawnPoint>(), "invalid Obj_SpawnPoint");
                 if (spawn.IsAlly)
                 {
                     context.allySpawn = spawn;
@@ -73,10 +80,12 @@ namespace najsvan
         private void SetupMenu()
         {
             MenuItem configDebugMode = new MenuItem("debugMode", "Debug Mode");
+            // default value
             configDebugMode.SetValue(false);
+            Logger.debugEnabled = configDebugMode.GetValue<bool>();
             configDebugMode.ValueChanged += ConfigDebugMode_ValueChanged;
             config.AddItem(configDebugMode);
-            
+
             config.AddToMainMenu();
         }
 
@@ -106,25 +115,44 @@ namespace najsvan
 
         private void Game_OnGameUpdate(EventArgs args)
         {
-            if (context.disableTickProcessing)
-            {
-                return;
-            }
-
             int currentTick = Environment.TickCount;
             if (currentTick - context.lastTickProcessed > context.tickDelay)
             {
                 try
                 {
                     bTree.Tick();
+
+                    // process server interactions
+                    if (serverInteractions.Count > 0)
+                    {
+                        int timePerAction = context.tickDelay / serverInteractions.Count;
+                        int delay = 0;
+                        foreach (ServerInteraction interaction in serverInteractions)
+                        {
+                            delay += timePerAction;
+                            // some warning about different behavior in different compiler versions
+                            ServerInteraction interactionLocal = interaction;
+                            Utility.DelayAction.Add(delay, () =>
+                            {
+                                GetLogger().Debug("ServerInteraction at tick: " + currentTick);
+                                interactionLocal();
+                            });
+                        }
+                    }
                 }
                 catch (Exception e)
                 {
+                    if (e.InnerException != null)
+                    {
+                        e = e.InnerException;
+                    }
                     Game.PrintChat(e.GetType().Name + " : " + e.Message);
                     GetLogger().Error(e.ToString());
-                    context.disableTickProcessing = true;
+                    StopProcessing();
                 }
+
                 producedContext.Clear();
+                serverInteractions.Clear();
                 context.lastTickProcessed = currentTick;
             }
         }
@@ -136,12 +164,21 @@ namespace najsvan
 
         public void Action_LevelSpells(Node node, String stack)
         {
-
+            int abilityLevel = context.myHero.Spellbook.GetSpell(SpellSlot.Q).Level +
+                                   context.myHero.Spellbook.GetSpell(SpellSlot.W).Level +
+                                   context.myHero.Spellbook.GetSpell(SpellSlot.E).Level +
+                                   context.myHero.Spellbook.GetSpell(SpellSlot.R).Level;
+            if (context.myHero.Level > abilityLevel && abilityLevel < context.levelSpellsOrder.Count())
+            {
+                serverInteractions.Add(() =>
+                {
+                    context.myHero.Spellbook.LevelSpell(context.levelSpellsOrder[abilityLevel]);
+                });
+            }
         }
 
         public void Action_Buy(Node node, String stack)
         {
-
         }
 
         public bool Condition_IsZombie(Node node, String stack)
@@ -151,7 +188,7 @@ namespace najsvan
 
         public virtual void Action_ZombieCast(Node node, String stack)
         {
-            throw new NotImplementedException();
+            // not many bots can do anything with this, so thats why it's not abstract
         }
 
         public bool Condition_IsDead(Node node, String stack)
@@ -226,7 +263,7 @@ namespace najsvan
 
         public bool Condition_IsRegenerating(Node node, String stack)
         {
-            if (IsInSpawn(context.myHero) && (context.myHero.Health != context.myHero.MaxHealth || context.myHero.Mana != context.myHero.MaxMana))
+            if (context.myHero.InFountain() && (context.myHero.Health != context.myHero.MaxHealth || context.myHero.Mana != context.myHero.MaxMana))
             {
                 return true;
             }
@@ -237,7 +274,10 @@ namespace najsvan
         {
             if (context.myHero.IsMoving)
             {
-                context.myHero.IssueOrder(GameObjectOrder.HoldPosition, context.myHero);
+                serverInteractions.Add(() =>
+                {
+                    context.myHero.IssueOrder(GameObjectOrder.HoldPosition, context.myHero);
+                });
             }
         }
 
@@ -255,13 +295,11 @@ namespace najsvan
         {
             if (destination.IsValid() && (!context.myHero.IsMoving || destination.Distance(context.myHero.Path.Last(), true) < context.myHero.BoundingRadius))
             {
-                context.myHero.IssueOrder(GameObjectOrder.MoveTo, destination);
+                serverInteractions.Add(() =>
+                {
+                    context.myHero.IssueOrder(GameObjectOrder.MoveTo, destination);
+                });
             }
-        }
-
-        public bool IsInSpawn(Obj_AI_Hero hero)
-        {
-            return hero.Distance(context.allySpawn) < context.spawnBuyRange;
         }
 
         public delegate bool HeroCondition(Obj_AI_Hero hero);
@@ -281,12 +319,12 @@ namespace najsvan
 
         public List<Obj_AI_Hero> Producer_EnemyHeroes()
         {
-            return ForeachHeroes((hero) => !hero.IsAlly && !hero.IsDead);
+            return ForeachHeroes((hero) => hero.IsValid<Obj_AI_Hero>() && !hero.IsAlly && !hero.IsDead);
         }
 
         public List<Obj_AI_Hero> Producer_AllyHeroes()
         {
-            return ForeachHeroes((hero) => hero.IsAlly && !hero.IsMe && !hero.IsDead);
+            return ForeachHeroes((hero) => hero.IsValid<Obj_AI_Hero>() && hero.IsAlly && !hero.IsMe && !hero.IsDead);
         }
     }
 }
