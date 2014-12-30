@@ -12,7 +12,7 @@ namespace najsvan
     public class JSONBTree
     {
         private static readonly Logger LOG = Logger.GetLogger("JSONBTree");
-        private static readonly Statistics STAT = Statistics.GetStatistics(LOG);
+        private static readonly Statistics STAT = Statistics.GetStatistics("JSONBTree");
         private readonly Dictionary<String, MethodInfo> reflectionCache = new Dictionary<String, MethodInfo>();
         private readonly Object funcProcessor;
         private readonly String treeName;

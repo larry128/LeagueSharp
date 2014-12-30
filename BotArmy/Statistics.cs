@@ -10,19 +10,17 @@ namespace najsvan
         private static readonly String STAT_PATH_PREFIX = LeagueSharp.Common.Config.LeagueSharpDirectory + "/Logs/";
         private const String STAT_PATH_POSTFIX = "_stats.log";
         private readonly String statsPath;
-        private Logger debugGuard;
         private readonly Dictionary<String, int> stats = new Dictionary<String, int>();
         private int incrementCounter;
 
-        private Statistics(Logger debugGuard)
+        private Statistics(String statName)
         {
-            this.statsPath = STAT_PATH_PREFIX + debugGuard.loggerName + STAT_PATH_POSTFIX;
-            this.debugGuard = debugGuard;
+            this.statsPath = STAT_PATH_PREFIX + statName + STAT_PATH_POSTFIX;
         }
 
-        public static Statistics GetStatistics(Logger debugGuard)
+        public static Statistics GetStatistics(String statName)
         {
-            return new Statistics(debugGuard);
+            return new Statistics(statName);
         }
 
         public void Increment(String stat)
@@ -49,17 +47,20 @@ namespace najsvan
 
         private void Write()
         {
-            List<String> lines = new List<String>();
-            foreach (String key in stats.Keys)
+            if (Logger.debugEnabled)
             {
-                int value;
-                if (stats.TryGetValue(key, out value))
+                List<String> lines = new List<String>();
+                foreach (String key in stats.Keys)
                 {
-                    lines.Add(key + " : " + value);
+                    int value;
+                    if (stats.TryGetValue(key, out value))
+                    {
+                        lines.Add(key + " : " + value);
+                    }
                 }
-            }
 
-            File.WriteAllLines(statsPath, lines);
+                File.WriteAllLines(statsPath, lines);
+            }
         }
     }
 }

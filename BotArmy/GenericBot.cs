@@ -9,23 +9,82 @@ namespace najsvan
 {
     public abstract class GenericBot
     {
-        private static readonly Logger LOG = Logger.GetLogger("GenericBot");
-        private JSONBTree bTree;
-        private Context context;
-        private ProducedContext producedContext;
+        protected Context context;
+        protected ProducedContext producedContext;
+        private readonly JSONBTree bTree;
+        private readonly Menu config; 
 
-        protected GenericBot()
+        protected GenericBot(Context context)
         {
             try
             {
-                Init();
+                GetLogger().Info("Constructor");
+                String botName = GetType().Name;
+                Game.PrintChat(botName + " - Loading");
+                config = new Menu(botName, botName, true);
+                SetupMenu();
+
+                bTree = new JSONBTree(this, "GenericBot");
+                this.context = context;
+                SetupContext();
+
+                producedContext = new ProducedContext();
+                SetupProducedContextCallbacks();
+
+                CustomEvents.Game.OnGameEnd += Game_OnGameEnd;
+                Game.OnGameUpdate += Game_OnGameUpdate;
+                Game.OnWndProc += Game_OnWndProc;
             }
             catch (Exception e)
             {
                 Game.PrintChat(e.GetType().Name + " : " + e.Message);
-                LOG.Error(e.ToString());
-                context.disableTickProcessing = true;
+                GetLogger().Error(e.ToString());
+
+                CustomEvents.Game.OnGameEnd -= Game_OnGameEnd;
+                Game.OnGameUpdate -= Game_OnGameUpdate;
+                Game.OnWndProc -= Game_OnWndProc;
             }
+        }
+
+        private void SetupProducedContextCallbacks()
+        {
+            producedContext.Set(ProducedContextKey.EnemyHeroes, Producer_EnemyHeroes);
+            producedContext.Set(ProducedContextKey.AllyHeroes, Producer_AllyHeroes);
+        }
+
+        private void SetupContext()
+        {
+            Assert.True(context.levelSpellsOrder.Count() > 0, "context.levelSpellsOrder is not setup");
+            autoLevel = new AutoLevel(context.levelSpellsOrder);
+
+            foreach (Obj_SpawnPoint spawn in ObjectManager.Get<Obj_SpawnPoint>())
+            {
+                if (spawn.IsAlly)
+                {
+                    context.allySpawn = spawn;
+                }
+                else
+                {
+                    context.enemySpawn = spawn;
+                }
+            }
+        }
+
+        private void SetupMenu()
+        {
+            MenuItem configDebugMode = new MenuItem("debugMode", "Debug Mode");
+            configDebugMode.SetValue(false);
+            configDebugMode.ValueChanged += ConfigDebugMode_ValueChanged;
+            config.AddItem(configDebugMode);
+            
+            config.AddToMainMenu();
+        }
+
+        private void ConfigDebugMode_ValueChanged(Object obj, OnValueChangeEventArgs args)
+        {
+            bool newValue = args.GetNewValue<bool>();
+            Logger.debugEnabled = newValue;
+            args.Process = true;
         }
 
         private void Game_OnWndProc(WndEventArgs args)
@@ -41,47 +100,8 @@ namespace najsvan
 
         private void Game_OnGameEnd(EventArgs args)
         {
-            LOG.Info("Game_OnGameEnd");
+            GetLogger().Info("Game_OnGameEnd");
             // quit game somehow
-        }
-
-        public void Init()
-        {
-            LOG.Info("Init()");
-            Game.PrintChat(this.GetType().Name + " - Loading");
-            bTree = new JSONBTree(this, "GenericBot");
-            context = new Context();
-            SetSpawns();
-
-            producedContext = new ProducedContext();
-            SetProducedContextCallbacks();
-
-            CustomEvents.Game.OnGameEnd += Game_OnGameEnd;
-            Game.OnGameUpdate += Game_OnGameUpdate;
-            Game.OnWndProc += Game_OnWndProc;
-
-            Game.PrintChat(this.GetType().Name + " - Loaded");
-        }
-
-        private void SetProducedContextCallbacks()
-        {
-            producedContext.Set(ProducedContextKey.EnemyHeroes, Producer_EnemyHeroes);
-            producedContext.Set(ProducedContextKey.AllyHeroes, Producer_AllyHeroes);
-        }
-
-        private void SetSpawns()
-        {
-            foreach (Obj_SpawnPoint spawn in ObjectManager.Get<Obj_SpawnPoint>())
-            {
-                if (spawn.IsAlly)
-                {
-                    context.allySpawn = spawn;
-                }
-                else
-                {
-                    context.enemySpawn = spawn;
-                }
-            }
         }
 
         private void Game_OnGameUpdate(EventArgs args)
@@ -101,12 +121,17 @@ namespace najsvan
                 catch (Exception e)
                 {
                     Game.PrintChat(e.GetType().Name + " : " + e.Message);
-                    LOG.Error(e.ToString());
+                    GetLogger().Error(e.ToString());
                     context.disableTickProcessing = true;
                 }
                 producedContext.Clear();
                 context.lastTickProcessed = currentTick;
             }
+        }
+
+        private Logger GetLogger()
+        {
+            return Logger.GetLogger(GetType().Name);
         }
 
         public void Action_LevelSpells(Node node, String stack)

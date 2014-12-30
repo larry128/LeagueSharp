@@ -1,9 +1,8 @@
 ﻿using LeagueSharp;
-using SharpDX;
 
 namespace najsvan
 {
-    public class Context
+    public abstract class Context
     {
         // READ ONLY
         public readonly Obj_AI_Hero myHero = ObjectManager.Player;
@@ -11,6 +10,7 @@ namespace najsvan
         public readonly int spawnBuyRange = 900;
 
         // SET ONCE - LEAVE ALONE
+        public SpellSlot[] levelSpellsOrder;
         public Obj_SpawnPoint allySpawn;
         public Obj_SpawnPoint enemySpawn; 
 

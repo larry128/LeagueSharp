@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace najsvan
@@ -7,6 +8,7 @@ namespace najsvan
     {
         public static bool debugEnabled = false;
         public readonly String loggerName;
+        private static Dictionary<String, Logger> loggerCache = new Dictionary<String, Logger>();
         private static readonly String LOG_PATH_PREFIX = LeagueSharp.Common.Config.LeagueSharpDirectory + "/Logs/";
         private const String LOG_PATH_POSTFIX = "_runtime.log";
         private readonly String logPath;
@@ -19,7 +21,13 @@ namespace najsvan
 
         public static Logger GetLogger(String loggerName)
         {
-            return new Logger(loggerName);
+            Logger logger;
+            if (!loggerCache.TryGetValue(loggerName, out logger))
+            {
+                logger = new Logger(loggerName);
+                loggerCache.Add(loggerName, logger);
+            }
+            return logger;
         }
 
         public void Error(String message)
