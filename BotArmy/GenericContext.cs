@@ -3,7 +3,7 @@ using LeagueSharp;
 
 namespace najsvan
 {
-    public abstract class Context
+    public abstract class GenericContext
     {
         public Obj_SpawnPoint allySpawn;
         public int currentTick = 0;
@@ -11,11 +11,13 @@ namespace najsvan
         public int lastElixirBought = 0;
         public int lastFailedBuy = 0;
         public int lastTickProcessed = 0;
+        public int lastWardDropped = 0;
         public SpellSlot[] levelSpellsOrder;
         public ItemId[] shoppingList;
         public ItemId[] shoppingListConsumables;
         public ItemId shoppingListElixir;
         public readonly Obj_AI_Hero myHero = ObjectManager.Player;
+        public readonly int wardPlaceDistance = 600;
         public readonly int tickDelay = 300;
 
         public readonly Dictionary<GameObjectTeam, List<WardSpot>> wardSpots = new Dictionary

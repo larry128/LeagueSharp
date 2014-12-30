@@ -12,13 +12,13 @@ namespace najsvan
     {
         public delegate bool HeroCondition(Obj_AI_Hero hero);
 
-        protected Context context;
+        protected GenericContext context;
         protected ProducedContext producedContext;
         private readonly JSONBTree bTree;
         private readonly Menu config;
         private readonly List<ServerInteraction> serverInteractions = new List<ServerInteraction>();
 
-        protected GenericBot(Context context)
+        protected GenericBot(GenericContext context)
         {
             try
             {
@@ -68,7 +68,7 @@ namespace najsvan
 
         private void SetupContext()
         {
-            Assert.True(context.levelSpellsOrder.Count() > 0, "context.levelSpellsOrder is not setup");
+            Assert.True(context.levelSpellsOrder.Count() > 0, "GenericContext.levelSpellsOrder is not setup");
 
             foreach (var spawn in ObjectManager.Get<Obj_SpawnPoint>())
             {
@@ -338,6 +338,23 @@ namespace najsvan
 
         public void Action_DropWard(Node node, String stack)
         {
+            var wardSlot = GetWardSlot();
+            var wardSkill = GetWardSkill();
+            if ((wardSkill != null || wardSlot != null) && GetSecondsSince(context.lastWardDropped) > 4)
+            {
+                
+            }
+        }
+
+        private InventorySlot GetWardSlot()
+        {
+            return null;
+        }
+
+        protected virtual InventorySlot GetWardSkill()
+        {
+            // not many heroes can do skill warding so lets not make this abstract
+            return null;
         }
 
         public bool Condition_WillInterruptSelf(Node node, String stack)

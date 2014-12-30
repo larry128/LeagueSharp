@@ -2,7 +2,7 @@
 
 namespace najsvan
 {
-    public class KarthusContext : Context
+    public class KarthusContext : GenericContext
     {
         public KarthusContext()
         {
