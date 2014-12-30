@@ -9,45 +9,45 @@ namespace najsvan
     {
         public readonly Obj_AI_Hero myHero = ObjectManager.Player;
         public readonly int tickDelay = 300;
-        public readonly Dictionary<GameObjectTeam, List<Vector2>> wardSpots = new Dictionary<GameObjectTeam, List<Vector2>>
+        public readonly Dictionary<GameObjectTeam, List<WardSpot>> wardSpots = new Dictionary<GameObjectTeam, List<WardSpot>>
         {
-            {GameObjectTeam.Neutral, new List<Vector2> 
+            {GameObjectTeam.Neutral, new List<WardSpot> 
             { 
-                new Vector2(6871,3074),
-                new Vector2(5580, 3543),
-                new Vector2(6552, 4736),
-                new Vector2(8542, 4802),
-                new Vector2(8103, 6267),
-                new Vector2(10796, 5213),
-                new Vector2(11547, 7099),
-                new Vector2(9965, 6572),
-                new Vector2(8716, 6721),
-                new Vector2(9942, 7872),
-                new Vector2(6813, 8580),
-                new Vector2(6258, 8128),
-                new Vector2(4944, 8482),
-                new Vector2(4811, 7125),
-                new Vector2(3356, 7782),
-                new Vector2(2387, 9698),
-                new Vector2(2952, 11221),
-                new Vector2(4453, 11836),
-                new Vector2(5733, 12766),
-                new Vector2(6755, 11500),
-                new Vector2(8010, 11845),
-                new Vector2(9249, 11446),
-                new Vector2(8298, 10283)
+                new WardSpot(6871,3074),
+                new WardSpot(5580, 3543),
+                new WardSpot(6552, 4736),
+                new WardSpot(8542, 4802),
+                new WardSpot(8103, 6267),
+                new WardSpot(10796, 5213),
+                new WardSpot(11547, 7099),
+                new WardSpot(9965, 6572),
+                new WardSpot(8716, 6721),
+                new WardSpot(9942, 7872),
+                new WardSpot(6813, 8580),
+                new WardSpot(6258, 8128),
+                new WardSpot(4944, 8482),
+                new WardSpot(4811, 7125),
+                new WardSpot(3356, 7782),
+                new WardSpot(2387, 9698),
+                new WardSpot(2952, 11221),
+                new WardSpot(4453, 11836),
+                new WardSpot(5733, 12766),
+                new WardSpot(6755, 11500),
+                new WardSpot(8010, 11845),
+                new WardSpot(9249, 11446),
+                new WardSpot(8298, 10283)
             }},
-            {GameObjectTeam.Order, new List<Vector2>
+            {GameObjectTeam.Order, new List<WardSpot>
             {
-                new Vector2(11897, 3696),
-                new Vector2(10477, 3101),
-                new Vector2(12605, 5112),
+                new WardSpot(11897, 3696),
+                new WardSpot(10477, 3101),
+                new WardSpot(12605, 5112),
             }},                    
-            {GameObjectTeam.Chaos, new List<Vector2>
+            {GameObjectTeam.Chaos, new List<WardSpot>
             {
-                new Vector2(11897, 3696),
-                new Vector2(10477, 3101),
-                new Vector2(12605, 5112),
+                new WardSpot(11897, 3696),
+                new WardSpot(10477, 3101),
+                new WardSpot(12605, 5112),
             }}                    
         };
 
