@@ -6,7 +6,7 @@ namespace najsvan
     {
         // READ ONLY
         public readonly Obj_AI_Hero myHero = ObjectManager.Player;
-        public readonly int tickDelay = 200;
+        public readonly int tickDelay = 300;
 
         // SET ONCE THEN LEAVE ALONE
         public Obj_SpawnPoint allySpawn;

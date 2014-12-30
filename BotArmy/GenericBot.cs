@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using LeagueSharp;
 using LeagueSharp.Common;
 using SharpDX;
@@ -34,9 +35,7 @@ namespace najsvan
                 producedContext = new ProducedContext();
                 SetupProducedContextCallbacks();
 
-                CustomEvents.Game.OnGameEnd += Game_OnGameEnd;
-                Game.OnGameUpdate += Game_OnGameUpdate;
-                Game.OnWndProc += Game_OnWndProc;
+                StartProcessing();
             }
             catch (Exception e)
             {
@@ -45,6 +44,13 @@ namespace najsvan
 
                 StopProcessing();
             }
+        }
+
+        private void StartProcessing()
+        {
+            CustomEvents.Game.OnGameEnd += Game_OnGameEnd;
+            Game.OnGameUpdate += Game_OnGameUpdate;
+            Game.OnWndProc += Game_OnWndProc;
         }
 
         private void StopProcessing()
@@ -119,49 +125,55 @@ namespace najsvan
             context.currentTick = Environment.TickCount;
             if (context.currentTick - context.lastTickProcessed > context.tickDelay)
             {
-                try
-                {
-                    if (serverInteractions.Count > 0)
-                    {
-                        GetLogger().Error("Left over serverInteractions, skipping tick.");
-                        return;
-                    }
-
-                    bTree.Tick();
-
-                    // process server interactions
-                    if (serverInteractions.Count > 0)
-                    {
-                        GetLogger().Debug("serverInteractions.Count: " + serverInteractions.Count);
-                        var timePerAction = context.tickDelay / (serverInteractions.Count + 1);
-                        var delay = 0;
-                        foreach (var interaction in serverInteractions)
-                        {
-                            delay += timePerAction;
-                            var interactionLocal = interaction;
-                            Utility.DelayAction.Add(delay, () =>
-                            {
-                                GetLogger().Debug("ServerInteraction at tick: " + context.currentTick);
-                                interactionLocal();
-                                serverInteractions.Remove(interactionLocal);
-                            });
-                        }
-                    }
-                }
-                catch (Exception e)
-                {
-                    if (e.InnerException != null)
-                    {
-                        e = e.InnerException;
-                    }
-                    Game.PrintChat(e.GetType().Name + " : " + e.Message);
-                    GetLogger().Error(e.ToString());
-                    StopProcessing();
-                }
-
-                producedContext.Clear();
-                context.lastTickProcessed = context.currentTick;
+                ProcessTick();
             }
+        }
+
+        [MethodImpl(MethodImplOptions.Synchronized)]
+        private void ProcessTick()
+        {
+            try
+            {
+                if (serverInteractions.Count > 0)
+                {
+                    GetLogger().Debug("Left over serverInteractions, skipping tick.");
+                    return;
+                }
+
+                bTree.Tick();
+
+                // process server interactions
+                if (serverInteractions.Count > 0)
+                {
+                    GetLogger().Debug("serverInteractions.Count: " + serverInteractions.Count);
+                    var timePerAction = context.tickDelay/(serverInteractions.Count + 1);
+                    var delay = 0;
+                    foreach (var interaction in serverInteractions)
+                    {
+                        delay += timePerAction;
+                        var interactionLocal = interaction;
+                        Utility.DelayAction.Add(delay, () =>
+                        {
+                            GetLogger().Debug("ServerInteraction at tick: " + context.currentTick);
+                            interactionLocal();
+                            serverInteractions.Remove(interactionLocal);
+                        });
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                if (e.InnerException != null)
+                {
+                    e = e.InnerException;
+                }
+                Game.PrintChat(e.GetType().Name + " : " + e.Message);
+                GetLogger().Error(e.ToString());
+                StopProcessing();
+            }
+
+            producedContext.Clear();
+            context.lastTickProcessed = context.currentTick;
         }
 
         private Logger GetLogger()
@@ -310,11 +322,12 @@ namespace najsvan
 
         public void Action_DropWard(Node node, String stack)
         {
+            
         }
 
         public bool Condition_WillInterruptSelf(Node node, String stack)
         {
-            return false;
+            return context.myHero.IsRecalling();
         }
 
         public void Action_CastAnythingSafe(Node node, String stack)
