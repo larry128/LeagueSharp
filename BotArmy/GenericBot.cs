@@ -136,7 +136,7 @@ namespace najsvan
             {
                 if (serverInteractions.Count > 0)
                 {
-                    GetLogger().Debug("Left over serverInteractions, skipping tick.");
+                    GetLogger().Debug("Not all serverInteractions processed, skipping tick.");
                     return;
                 }
 
@@ -179,6 +179,11 @@ namespace najsvan
         private Logger GetLogger()
         {
             return Logger.GetLogger(GetType().Name);
+        }
+
+        public void Action_Scan(Node node, String stack)
+        {
+
         }
 
         public void Action_LevelSpells(Node node, String stack)
