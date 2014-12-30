@@ -4,16 +4,16 @@ using LeagueSharp.Common;
 
 namespace najsvan
 {
-    class Program
+    internal class Program
     {
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
             CustomEvents.Game.OnGameLoad += Game_OnGameLoad;
         }
 
-        static void Game_OnGameLoad(EventArgs args)
+        private static void Game_OnGameLoad(EventArgs args)
         {
-            String champName = ObjectManager.Player.ChampionName;
+            var champName = ObjectManager.Player.ChampionName;
             Game.PrintChat("Current champ: " + champName);
             switch (champName)
             {

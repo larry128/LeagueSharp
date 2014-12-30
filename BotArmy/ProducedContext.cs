@@ -5,9 +5,10 @@ namespace najsvan
 {
     public class ProducedContext
     {
-        private readonly Dictionary<ProducedContextKey, KeyValuePair<Producer, Object[]>> context = new Dictionary<ProducedContextKey, KeyValuePair<Producer, Object[]>>();
-
         public delegate Object Producer();
+
+        private readonly Dictionary<ProducedContextKey, KeyValuePair<Producer, Object[]>> context =
+            new Dictionary<ProducedContextKey, KeyValuePair<Producer, Object[]>>();
 
         public Object Get(ProducedContextKey key)
         {
@@ -21,17 +22,13 @@ namespace najsvan
 
                 return pair.Value[0];
             }
-            else
-            {
-                Assert.Fail(false, "Don't know how to produce " + key);
-                return null;
-            }
-            
+            Assert.Fail(false, "Don't know how to produce " + key);
+            return null;
         }
 
         public void Clear()
         {
-            foreach (KeyValuePair<Producer, Object[]> value in context.Values)
+            foreach (var value in context.Values)
             {
                 value.Value[0] = null;
             }

@@ -1,21 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data;
 using System.IO;
+using LeagueSharp.Common;
 
 namespace najsvan
 {
     public class Statistics
     {
-        private static readonly String STAT_PATH_PREFIX = LeagueSharp.Common.Config.LeagueSharpDirectory + "/Logs/";
         private const String STAT_PATH_POSTFIX = "_stats.log";
-        private readonly String statsPath;
-        private readonly Dictionary<String, int> stats = new Dictionary<String, int>();
+        private static readonly String STAT_PATH_PREFIX = Config.LeagueSharpDirectory + "/Logs/";
         private int incrementCounter;
+        private readonly Dictionary<String, int> stats = new Dictionary<String, int>();
+        private readonly String statsPath;
 
         private Statistics(String statName)
         {
-            this.statsPath = STAT_PATH_PREFIX + statName + STAT_PATH_POSTFIX;
+            statsPath = STAT_PATH_PREFIX + statName + STAT_PATH_POSTFIX;
         }
 
         public static Statistics GetStatistics(String statName)
@@ -25,7 +25,6 @@ namespace najsvan
 
         public void Increment(String stat)
         {
-            
             int value;
             if (stats.TryGetValue(stat, out value))
             {
@@ -42,15 +41,14 @@ namespace najsvan
                 Write();
                 incrementCounter = 0;
             }
-            
         }
 
         private void Write()
         {
             if (Logger.debugEnabled)
             {
-                List<String> lines = new List<String>();
-                foreach (String key in stats.Keys)
+                var lines = new List<String>();
+                foreach (var key in stats.Keys)
                 {
                     int value;
                     if (stats.TryGetValue(key, out value))

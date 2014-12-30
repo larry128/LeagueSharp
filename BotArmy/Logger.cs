@@ -1,22 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using LeagueSharp.Common;
 
 namespace najsvan
 {
     public class Logger
     {
-        public static bool debugEnabled = false;
-        public readonly String loggerName;
-        private static Dictionary<String, Logger> loggerCache = new Dictionary<String, Logger>();
-        private static readonly String LOG_PATH_PREFIX = LeagueSharp.Common.Config.LeagueSharpDirectory + "/Logs/";
         private const String LOG_PATH_POSTFIX = "_runtime.log";
+        public static bool debugEnabled = false;
+        private static readonly Dictionary<String, Logger> loggerCache = new Dictionary<String, Logger>();
+        private static readonly String LOG_PATH_PREFIX = Config.LeagueSharpDirectory + "/Logs/";
+        public readonly String loggerName;
         private readonly String logPath;
 
         private Logger(String loggerName)
         {
             this.loggerName = loggerName;
-            this.logPath = LOG_PATH_PREFIX + loggerName + LOG_PATH_POSTFIX;
+            logPath = LOG_PATH_PREFIX + loggerName + LOG_PATH_POSTFIX;
         }
 
         public static Logger GetLogger(String loggerName)
@@ -51,7 +52,7 @@ namespace najsvan
         private void Log(String severity, String message)
         {
             File.AppendAllText(logPath,
-                System.DateTime.Now.ToLongTimeString() + " : " + severity + " : " + message + "\n");
+                DateTime.Now.ToLongTimeString() + " : " + severity + " : " + message + "\n");
         }
     }
 }

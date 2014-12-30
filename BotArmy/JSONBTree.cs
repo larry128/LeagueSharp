@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
+using System.Reflection;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.Text;
-using System.Reflection;
+using LeagueSharp.Common;
 
 namespace najsvan
 {
@@ -13,17 +13,17 @@ namespace najsvan
     {
         private static readonly Logger LOG = Logger.GetLogger("JSONBTree");
         private static readonly Statistics STAT = Statistics.GetStatistics("JSONBTree");
-        private readonly Dictionary<String, MethodInfo> reflectionCache = new Dictionary<String, MethodInfo>();
         private readonly Object funcProcessor;
-        private readonly String treeName;
+        private readonly Dictionary<String, MethodInfo> reflectionCache = new Dictionary<String, MethodInfo>();
         private readonly Tree tree;
+        private readonly String treeName;
 
         public JSONBTree(Object funcProcessor, String treeName)
         {
             Assert.True(funcProcessor != null, "funcProcessor != null");
             this.funcProcessor = funcProcessor;
             this.treeName = treeName;
-            this.tree = JSONHelper.Deserialize<Tree>(LeagueSharp.Common.Config.LeagueSharpDirectory + "/bt/" + treeName + ".json");
+            tree = JSONHelper.Deserialize<Tree>(Config.LeagueSharpDirectory + "/bt/" + treeName + ".json");
             Assert.True(tree != null, "JSONHelper.Deserialize<Tree>: null for : " + treeName);
         }
 
@@ -32,21 +32,18 @@ namespace najsvan
             LOG.Debug(treeName + " Tick()");
 
             // expected to have one "Start" node
-            List<Node> nodes = tree.nodes;
+            var nodes = tree.nodes;
             Assert.True(nodes != null && nodes.Count == 1, "nodes != null && nodes.Count == 1");
-            Node start = nodes[0];
+            var start = nodes[0];
             Assert.True(start != null, "start != null");
 
             if (start.children != null)
             {
                 Assert.True(start.children.Count < 2, "start.children.Count must be 0 or 1");
-                Node child = start.children[0];
+                var child = start.children[0];
                 return ProcessGenericNode(child, stack + treeName);
             }
-            else
-            {
-                return false;
-            }
+            return false;
         }
 
         public bool Process_Sequence(Node node, String stack)
@@ -54,19 +51,16 @@ namespace najsvan
             Assert.True(node.children != null, "node.children != null");
             if (node.children.Count > 0)
             {
-                foreach (Node child in node.children)
+                foreach (var child in node.children)
                 {
-                    if (!ProcessGenericNode(child, stack + node.ToString()))
+                    if (!ProcessGenericNode(child, stack + node))
                     {
                         return false;
                     }
                 }
                 return true;
             }
-            else
-            {
-                return false;
-            }
+            return false;
         }
 
         public bool Process_Selector(Node node, String stack)
@@ -74,25 +68,23 @@ namespace najsvan
             Assert.True(node.children != null, "node.children != null");
             if (node.children.Count > 0)
             {
-                foreach (Node child in node.children)
+                foreach (var child in node.children)
                 {
-                    if (ProcessGenericNode(child, stack + node.ToString()))
+                    if (ProcessGenericNode(child, stack + node))
                     {
                         return true;
                     }
                 }
                 return false;
             }
-            else
-            {
-                return false;
-            }
+            return false;
         }
 
         public bool Process_Decorator(Node node, String stack)
         {
-            Assert.True(node.children != null && node.children.Count == 1, "node.children != null && node.children.Count == 1");
-            return ProcessGenericNode(node.children[0], stack + node.ToString(), this, "Decorator_" + node.name);
+            Assert.True(node.children != null && node.children.Count == 1,
+                "node.children != null && node.children.Count == 1");
+            return ProcessGenericNode(node.children[0], stack + node, this, "Decorator_" + node.name);
         }
 
         public bool Decorator_Not(Node node, String stack)
@@ -124,9 +116,10 @@ namespace najsvan
 
         private bool ProcessFunc(Node node, string stack, String prefix)
         {
-            Assert.True(node.children == null || node.children.Count == 0, "node.children == null || node.children.Count == 0");
-            String methodName = prefix + node.name;
-            bool result = ProcessGenericNode(node, stack + node, funcProcessor, methodName);
+            Assert.True(node.children == null || node.children.Count == 0,
+                "node.children == null || node.children.Count == 0");
+            var methodName = prefix + node.name;
+            var result = ProcessGenericNode(node, stack + node, funcProcessor, methodName);
             STAT.Increment(treeName + "." + methodName);
             LOG.Debug(stack + node + " : " + result);
             return result;
@@ -139,32 +132,29 @@ namespace najsvan
 
         private bool ProcessGenericNode(Node node, String stack, Object processor, String methodName)
         {
-            String simpleSignature = processor.GetHashCode() + methodName;
+            var simpleSignature = processor.GetHashCode() + methodName;
             MethodInfo method;
             if (!reflectionCache.TryGetValue(simpleSignature, out method))
             {
-                Type type = processor.GetType();
-                method = type.GetRuntimeMethod(methodName, new Type[] {node.GetType(), stack.GetType()});
+                var type = processor.GetType();
+                method = type.GetRuntimeMethod(methodName, new[] {node.GetType(), stack.GetType()});
                 Assert.True(method != null, "GetMethod: null for : " + methodName + " in " + type.Name);
                 reflectionCache.Add(simpleSignature, method);
             }
 
-            Object invokeResult = method.Invoke(processor, new object[] { node, stack });
+            var invokeResult = method.Invoke(processor, new object[] {node, stack});
             bool methodResult;
 
             if (invokeResult != null && Boolean.TryParse(invokeResult.ToString(), out methodResult))
             {
                 return methodResult;
             }
-            else
-            {
-                return true;
-            }
+            return true;
         }
     }
 
     [DataContract]
-    class Tree
+    internal class Tree
     {
         [DataMember]
         public List<Node> nodes { get; protected set; }
@@ -194,16 +184,16 @@ namespace najsvan
         }
     }
 
-    class JSONHelper
+    internal class JSONHelper
     {
         public static T Deserialize<T>(String jsonPath)
         {
-            String json = File.ReadAllText(jsonPath);
-            T obj = Activator.CreateInstance<T>();
-            using (MemoryStream ms = new MemoryStream(Encoding.Unicode.GetBytes(json)))
+            var json = File.ReadAllText(jsonPath);
+            var obj = Activator.CreateInstance<T>();
+            using (var ms = new MemoryStream(Encoding.Unicode.GetBytes(json)))
             {
-                DataContractJsonSerializer serializer = new DataContractJsonSerializer(obj.GetType());
-                obj = (T)serializer.ReadObject(ms);
+                var serializer = new DataContractJsonSerializer(obj.GetType());
+                obj = (T) serializer.ReadObject(ms);
                 ms.Close();
                 ms.Dispose();
                 return obj;

@@ -1,6 +1,4 @@
-﻿using LeagueSharp;
-
-namespace najsvan
+﻿namespace najsvan
 {
     public class KarthusBot : GenericBot
     {
