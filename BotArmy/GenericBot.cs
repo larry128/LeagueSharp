@@ -10,8 +10,8 @@ namespace najsvan
 {
     public abstract class GenericBot
     {
-        public delegate bool Condition<in T>(T hero);
-
+        protected delegate bool Condition<in T>(T hero);
+        protected delegate void Action<in T>(T change);
         protected GenericContext context;
         protected ProducedContext producedContext;
         private readonly JSONBTree bTree;
@@ -87,20 +87,34 @@ namespace najsvan
 
         private void SetupMenu()
         {
-            var configDebugMode = new MenuItem("debugMode", "Debug Mode");
+            var configGenericBotDebug = new MenuItem("genericBotDebug", "GenericBot Debug");
             // default value
-            configDebugMode.SetValue(false);
-            Logger.debugEnabled = configDebugMode.GetValue<bool>();
-            configDebugMode.ValueChanged += ConfigDebugMode_ValueChanged;
-            config.AddItem(configDebugMode);
+            configGenericBotDebug.SetValue(false);
+            Logger.GetLogger("GenericBot").debugEnabled = configGenericBotDebug.GetValue<bool>();
+            configGenericBotDebug.ValueChanged += ConfigGenericBotDebug_ValueChanged;
+            config.AddItem(configGenericBotDebug);
+
+            var configJsonBTreeDebug = new MenuItem("jsonBTreeDebug", "JSONBTree Debug");
+            // default value
+            configJsonBTreeDebug.SetValue(false);
+            Logger.GetLogger("JSONBTree").debugEnabled = configJsonBTreeDebug.GetValue<bool>();
+            configJsonBTreeDebug.ValueChanged += ConfigJsonBTreeDebug_ValueChanged;
+            config.AddItem(configJsonBTreeDebug);
 
             config.AddToMainMenu();
         }
 
-        private void ConfigDebugMode_ValueChanged(Object obj, OnValueChangeEventArgs args)
+        private void ConfigGenericBotDebug_ValueChanged(Object obj, OnValueChangeEventArgs args)
         {
             var newValue = args.GetNewValue<bool>();
-            Logger.debugEnabled = newValue;
+            Logger.GetLogger("GenericBot").debugEnabled = newValue;
+            args.Process = true;
+        }
+
+        private void ConfigJsonBTreeDebug_ValueChanged(Object obj, OnValueChangeEventArgs args)
+        {
+            var newValue = args.GetNewValue<bool>();
+            Logger.GetLogger("JSONBTree").debugEnabled = newValue;
             args.Process = true;
         }
 
@@ -128,7 +142,10 @@ namespace najsvan
             {
                 if (serverInteractions.Count > 0)
                 {
-                    GetLogger().Debug("Not all serverInteractions processed, skipping tick.");
+                    GetLogger()
+                        .Error(
+                            "Not all serverInteractions processed, pushing tick 50 * serverInteractions.Count millis.");
+                    context.lastTickProcessed += 50 * serverInteractions.Count;
                     return;
                 }
 
@@ -155,8 +172,8 @@ namespace najsvan
                         var interactionLocal = interaction;
                         Utility.DelayAction.Add(delay, () =>
                         {
-                            GetLogger().Debug("ServerInteraction at tick: " + context.currentTick);
-                            interactionLocal();
+                            GetLogger().Debug(interactionLocal.change + " at tick: " + context.currentTick);
+                            interactionLocal.serverAction();
                             serverInteractions.Remove(interactionLocal);
                         });
                     }
@@ -194,8 +211,8 @@ namespace najsvan
                                context.myHero.Spellbook.GetSpell(SpellSlot.R).Level;
             if (context.myHero.Level > abilityLevel && abilityLevel < context.levelSpellsOrder.Count())
             {
-                serverInteractions.Add(
-                    () => { context.myHero.Spellbook.LevelSpell(context.levelSpellsOrder[abilityLevel]); });
+                serverInteractions.Add(new ServerInteraction(new SpellLeveledUp(),
+                    () => { context.myHero.Spellbook.LevelSpell(context.levelSpellsOrder[abilityLevel]); }));
             }
         }
 
@@ -210,11 +227,11 @@ namespace najsvan
                     foreach (var consumable in context.shoppingListConsumables)
                     {
                         var consumableLocal = consumable;
-                        serverInteractions.Add(
+                        serverInteractions.Add(new ServerInteraction(new BuyItem(),
                             () =>
                             {
                                 if (!context.myHero.BuyItem(consumableLocal)) context.lastFailedBuy = context.currentTick;
-                            });
+                            }));
                     }
                     context.shoppingListConsumables = new ItemId[] { };
                 }
@@ -228,35 +245,38 @@ namespace najsvan
                     var healthPotSlot = GetItemSlot(ItemId.Health_Potion);
                     if (wardSlot != null)
                     {
-                        serverInteractions.Add(() => { context.myHero.SellItem(wardSlot.Slot); });
+                        serverInteractions.Add(new ServerInteraction(new SellItem(),
+                            () => { context.myHero.SellItem(wardSlot.Slot); }));
                     }
                     else if (manaPotSlot != null)
                     {
-                        serverInteractions.Add(() => { context.myHero.SellItem(manaPotSlot.Slot); });
+                        serverInteractions.Add(new ServerInteraction(new SellItem(),
+                            () => { context.myHero.SellItem(manaPotSlot.Slot); }));
                     }
                     else if (healthPotSlot != null)
                     {
-                        serverInteractions.Add(() => { context.myHero.SellItem(healthPotSlot.Slot); });
+                        serverInteractions.Add(new ServerInteraction(new SellItem(),
+                            () => { context.myHero.SellItem(healthPotSlot.Slot); }));
                     }
                 }
                 else
                 {
                     if (nextToBuy != ItemId.Unknown)
                     {
-                        serverInteractions.Add(
+                        serverInteractions.Add(new ServerInteraction(new BuyItem(),
                             () =>
                             {
                                 if (!context.myHero.BuyItem(nextToBuy)) context.lastFailedBuy = context.currentTick;
-                            });
+                            }));
                     }
                     else if (GetMinutesSince(context.lastElixirBought) > 3)
                     {
-                        serverInteractions.Add(
+                        serverInteractions.Add(new ServerInteraction(new BuyItem(),
                             () =>
                             {
                                 if (!context.myHero.BuyItem(context.shoppingListElixir))
                                     context.lastFailedBuy = context.currentTick;
-                            });
+                            }));
                         context.lastElixirBought = context.currentTick;
                     }
                 }
@@ -327,10 +347,7 @@ namespace najsvan
             return context.myHero.IsZombie;
         }
 
-        public virtual void Action_ZombieCast(Node node, String stack)
-        {
-            // not many bots can do anything with this, so thats why it's not abstract
-        }
+        public abstract void Action_ZombieCast(Node node, String stack);
 
         public bool Condition_IsDead(Node node, String stack)
         {
@@ -368,7 +385,8 @@ namespace najsvan
                                         // will probably be more complicated than InRange...
                                         if (wardSpell != null && wardSpell.InRange(position.To3D()))
                                         {
-                                            serverInteractions.Add(() => wardSpell.Cast(position));
+                                            serverInteractions.Add(new ServerInteraction(new WardCast(),
+                                                () => wardSpell.Cast(position)));
                                             return;
                                         }
 
@@ -377,7 +395,8 @@ namespace najsvan
                                             var wardSlotSpell = new Spell(wardSlot.SpellSlot, context.wardPlaceDistance);
                                             if (wardSlotSpell.InRange(position.To3D()))
                                             {
-                                                serverInteractions.Add(() => wardSlotSpell.Cast(position));
+                                                serverInteractions.Add(new ServerInteraction(new WardUsed(wardSlot),
+                                                    () => wardSlotSpell.Cast(position)));
                                             }
                                         }
                                     }
@@ -391,7 +410,7 @@ namespace najsvan
 
         private bool IsAWardNear(Vector2 position)
         {
-            List<GameObject> wardList = producedContext.Get(ProducedContextKey.Wards) as List<GameObject>;
+            var wardList = producedContext.Get(ProducedContextKey.Wards) as List<GameObject>;
             foreach (var ward in wardList)
             {
                 if (position.Distance(ward.Position) < context.wardSightRadius)
@@ -405,37 +424,44 @@ namespace najsvan
         private InventorySlot GetWardSlot()
         {
             InventorySlot ward;
-            if ((ward = GetItemSlot(ItemId.Warding_Totem_Trinket)) != null && ward.SpellSlot.IsReady())
+            var wardsUsed = new List<InventorySlot>();
+
+            ForeachServerInteraction<WardUsed>(change =>
+            {
+                wardsUsed.Add(change.wardSlot);
+            });
+
+            if ((ward = GetItemSlot(ItemId.Warding_Totem_Trinket)) != null && ward.SpellSlot.IsReady() && !wardsUsed.Contains(ward))
             {
                 return ward;
             }
 
-            if ((ward = GetItemSlot(ItemId.Greater_Stealth_Totem_Trinket)) != null && ward.SpellSlot.IsReady())
+            if ((ward = GetItemSlot(ItemId.Greater_Stealth_Totem_Trinket)) != null && ward.SpellSlot.IsReady() && !wardsUsed.Contains(ward))
             {
                 return ward;
             }
 
-            if ((ward = GetItemSlot(ItemId.Stealth_Ward)) != null && ward.SpellSlot.IsReady())
+            if ((ward = GetItemSlot(ItemId.Stealth_Ward)) != null && ward.SpellSlot.IsReady() && !wardsUsed.Contains(ward))
             {
                 return ward;
             }
 
-            if ((ward = GetItemSlot(ItemId.Sightstone)) != null && ward.SpellSlot.IsReady())
+            if ((ward = GetItemSlot(ItemId.Sightstone)) != null && ward.SpellSlot.IsReady() && !wardsUsed.Contains(ward))
             {
                 return ward;
             }
 
-            if ((ward = GetItemSlot(ItemId.Ruby_Sightstone)) != null && ward.SpellSlot.IsReady())
+            if ((ward = GetItemSlot(ItemId.Ruby_Sightstone)) != null && ward.SpellSlot.IsReady() && !wardsUsed.Contains(ward))
             {
                 return ward;
             }
 
-            if ((ward = GetItemSlot(ItemId.Vision_Ward)) != null && ward.SpellSlot.IsReady())
+            if ((ward = GetItemSlot(ItemId.Vision_Ward)) != null && ward.SpellSlot.IsReady() && !wardsUsed.Contains(ward))
             {
                 return ward;
             }
 
-            if ((ward = GetItemSlot(ItemId.Greater_Vision_Totem_Trinket)) != null && ward.SpellSlot.IsReady())
+            if ((ward = GetItemSlot(ItemId.Greater_Vision_Totem_Trinket)) != null && ward.SpellSlot.IsReady() && !wardsUsed.Contains(ward))
             {
                 return ward;
             }
@@ -443,37 +469,31 @@ namespace najsvan
             return null;
         }
 
-        protected virtual Spell GetWardSpell()
-        {
-            // not many heroes can do spell warding so lets not make this abstract
-            return null;
-        }
+        protected abstract Spell GetWardSpell();
+        public abstract bool Condition_WillInterruptSelf(Node node, String stack);
 
-        public bool Condition_WillInterruptSelf(Node node, String stack)
+        public bool Condition_IsRecalling(Node node, String stack)
         {
             return context.myHero.IsRecalling();
         }
 
-        public void Action_CastAnythingSafe(Node node, String stack)
+        public void Action_CastSummoners(Node node, String stack)
         {
         }
 
-        public bool Condition_BeReckless(Node node, String stack)
-        {
-            return false;
-        }
-
-        public void Action_RecklessCast(Node node, String stack)
+        public void Action_CastItems(Node node, String stack)
         {
         }
 
-        public void Action_RecklessAutoAttack(Node node, String stack)
+        public abstract void Action_CastSafeSpells(Node node, String stack);
+
+        public void Action_RecklessCastSummoners(Node node, String stack)
         {
         }
 
-        public void Action_RecklessMove(Node node, String stack)
-        {
-        }
+        public abstract void Action_RecklessCastSpells(Node node, String stack);
+        public abstract void Action_RecklessAutoAttack(Node node, String stack);
+        public abstract bool Action_RecklessMove(Node node, String stack);
 
         public bool Condition_IsInPanic(Node node, String stack)
         {
@@ -497,7 +517,7 @@ namespace najsvan
         {
         }
 
-        public void Action_CastAnything(Node node, String stack)
+        public void Action_CastAnySpells(Node node, String stack)
         {
         }
 
@@ -515,9 +535,14 @@ namespace najsvan
         {
             if (context.myHero.IsMoving)
             {
-                serverInteractions.Add(
-                    () => { context.myHero.IssueOrder(GameObjectOrder.HoldPosition, context.myHero); });
+                serverInteractions.Add(new ServerInteraction(new HoldingPosition(),
+                    () => { context.myHero.IssueOrder(GameObjectOrder.HoldPosition, context.myHero); }));
             }
+        }
+
+        public bool Action_GoHome(Node node, String stack)
+        {
+            return false;
         }
 
         public bool Action_MoveToWard(Node node, String stack)
@@ -525,22 +550,20 @@ namespace najsvan
             return false;
         }
 
-        public void Action_Move(Node node, String stack)
-        {
-            // figure out where to move
-        }
+        public abstract void Action_Move(Node node, String stack);
 
-        private void MoveToDestination(Vector2 destination)
+        protected void SafeMoveToDestination(Vector2 destination)
         {
             if (destination.IsValid() &&
                 (!context.myHero.IsMoving ||
                  destination.Distance(context.myHero.Path.Last(), true) < context.myHero.BoundingRadius))
             {
-                serverInteractions.Add(() => { context.myHero.IssueOrder(GameObjectOrder.MoveTo, destination.To3D()); });
+                serverInteractions.Add(new ServerInteraction(new MovingTo(),
+                    () => { context.myHero.IssueOrder(GameObjectOrder.MoveTo, destination.To3D()); }));
             }
         }
 
-        private List<T> ForeachObject<T>(Condition<T> cond) where T : GameObject, new()
+        protected List<T> ForeachGameObject<T>(Condition<T> cond) where T : GameObject, new()
         {
             var result = new List<T>();
             foreach (var obj in ObjectManager.Get<T>())
@@ -553,21 +576,60 @@ namespace najsvan
             return result;
         }
 
+        protected void ForeachServerInteraction<T>(Action<T> action) where T : ExpectedChange
+        {
+            foreach (var serverInteraction in serverInteractions)
+            {
+                var change = serverInteraction.change as T;
+                if (change != null)
+                {
+                    action(change);
+                }
+            }
+        }
+
         public List<Obj_AI_Hero> Producer_EnemyHeroes()
         {
-            return ForeachObject<Obj_AI_Hero>(hero => hero.IsValid && !hero.IsAlly && !hero.IsDead);
+            return ForeachGameObject<Obj_AI_Hero>(hero => hero.IsValid && !hero.IsAlly && !hero.IsDead);
         }
 
         public List<Obj_AI_Hero> Producer_AllyHeroes()
         {
-            return ForeachObject<Obj_AI_Hero>(hero => hero.IsValid && hero.IsAlly && !hero.IsMe && !hero.IsDead);
+            return ForeachGameObject<Obj_AI_Hero>(hero => hero.IsValid && hero.IsAlly && !hero.IsMe && !hero.IsDead);
         }
 
         public List<GameObject> Producer_Wards()
         {
-            return ForeachObject<GameObject>(obj => obj.IsValid && obj.IsVisible && obj.IsAlly && obj.Name.ToLower().Contains("ward"));
+            return
+                ForeachGameObject<GameObject>(
+                    obj => obj.IsValid && obj.IsVisible && obj.IsAlly && obj.Name.ToLower().Contains("ward"));
         }
 
-        private delegate void ServerInteraction();
+        public float GetAdjustedAllyHealth(Obj_AI_Hero ally)
+        {
+            float[] result = { ally.Health };
+            ForeachServerInteraction<AllyHealed>(healed =>
+            {
+                if (healed.who.NetworkId == ally.NetworkId)
+                {
+                    result[0] += healed.amount;
+                }
+            });
+            return result[0];
+        }
+
+        public float GetAdjustedEnemyHealth(Obj_AI_Hero enemy)
+        {
+            float[] result = { enemy.Health };
+            ForeachServerInteraction<AllyHealed>(damaged =>
+            {
+                if (damaged.who.NetworkId == enemy.NetworkId)
+                {
+                    result[0] -= damaged.amount;
+                }
+            });
+
+            return result[0];
+        }
     }
 }

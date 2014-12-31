@@ -8,6 +8,7 @@ namespace najsvan
     public class Statistics
     {
         private const String STAT_PATH_POSTFIX = "_stats.log";
+        public bool writingEnabled = false;
         private static readonly String STAT_PATH_PREFIX = Config.LeagueSharpDirectory + "/Logs/";
         private int incrementCounter;
         private readonly Dictionary<String, int> stats = new Dictionary<String, int>();
@@ -45,7 +46,7 @@ namespace najsvan
 
         private void Write()
         {
-            if (Logger.debugEnabled)
+            if (writingEnabled)
             {
                 var lines = new List<String>();
                 foreach (var key in stats.Keys)
