@@ -10,7 +10,7 @@ namespace najsvan
 {
     public abstract class GenericBot
     {
-        public delegate bool HeroCondition(Obj_AI_Hero hero);
+        public delegate bool Condition<in T>(T hero);
 
         protected GenericContext context;
         protected ProducedContext producedContext;
@@ -64,6 +64,7 @@ namespace najsvan
         {
             producedContext.Set(ProducedContextKey.EnemyHeroes, Producer_EnemyHeroes);
             producedContext.Set(ProducedContextKey.AllyHeroes, Producer_AllyHeroes);
+            producedContext.Set(ProducedContextKey.Wards, Producer_Wards);
         }
 
         private void SetupContext()
@@ -105,7 +106,7 @@ namespace najsvan
 
         private void Game_OnWndProc(WndEventArgs args)
         {
-            if (args.Msg == (ulong) WindowsMessages.WM_KEYDOWN)
+            if (args.Msg == (ulong)WindowsMessages.WM_KEYDOWN)
             {
                 if (args.WParam == 0x75) // F6 - test shit
                 {
@@ -146,7 +147,7 @@ namespace najsvan
                 if (serverInteractions.Count > 0)
                 {
                     GetLogger().Debug("serverInteractions.Count: " + serverInteractions.Count);
-                    var timePerAction = context.tickDelay/(serverInteractions.Count + 1);
+                    var timePerAction = context.tickDelay / (serverInteractions.Count + 1);
                     var delay = 0;
                     foreach (var interaction in serverInteractions)
                     {
@@ -215,7 +216,7 @@ namespace najsvan
                                 if (!context.myHero.BuyItem(consumableLocal)) context.lastFailedBuy = context.currentTick;
                             });
                     }
-                    context.shoppingListConsumables = new ItemId[] {};
+                    context.shoppingListConsumables = new ItemId[] { };
                 }
 
                 var nextToBuy = GetNextBuyItemId();
@@ -264,12 +265,12 @@ namespace najsvan
 
         private int GetSecondsSince(int actionTookPlaceAt)
         {
-            return (context.currentTick - actionTookPlaceAt)/1000;
+            return (context.currentTick - actionTookPlaceAt) / 1000;
         }
 
         private int GetMinutesSince(int actionTookPlaceAt)
         {
-            return (context.currentTick - actionTookPlaceAt)/1000/60;
+            return (context.currentTick - actionTookPlaceAt) / 1000 / 60;
         }
 
         private InventorySlot GetItemSlot(ItemId itemId)
@@ -338,22 +339,113 @@ namespace najsvan
 
         public void Action_DropWard(Node node, String stack)
         {
-            var wardSlot = GetWardSlot();
-            var wardSkill = GetWardSkill();
-            if ((wardSkill != null || wardSlot != null) && GetSecondsSince(context.lastWardDropped) > 4)
+            if (context.myHero.Level > 1)
             {
-                
+                // use wardSpell rather than wardSlot
+                var wardSpell = GetWardSpell();
+                InventorySlot wardSlot = null;
+                if (wardSpell == null)
+                {
+                    wardSlot = GetWardSlot();
+                }
+
+                if ((wardSpell != null || wardSlot != null) && GetSecondsSince(context.lastWardDropped) > 4)
+                {
+                    var keys = context.wardSpots.Keys;
+                    foreach (var key in keys)
+                    {
+                        if (key == GameObjectTeam.Neutral || key == context.myHero.Team)
+                        {
+                            List<WardSpot> values;
+                            if (context.wardSpots.TryGetValue(key, out values))
+                            {
+                                foreach (var wardSpot in values)
+                                {
+                                    var position = wardSpot.GetPosition();
+                                    var isAWardNear = IsAWardNear(position);
+                                    if (!isAWardNear)
+                                    {
+                                        // will probably be more complicated than InRange...
+                                        if (wardSpell != null && wardSpell.InRange(position.To3D()))
+                                        {
+                                            serverInteractions.Add(() => wardSpell.Cast(position));
+                                            return;
+                                        }
+
+                                        if (wardSlot != null)
+                                        {
+                                            var wardSlotSpell = new Spell(wardSlot.SpellSlot, context.wardPlaceDistance);
+                                            if (wardSlotSpell.InRange(position.To3D()))
+                                            {
+                                                serverInteractions.Add(() => wardSlotSpell.Cast(position));
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
+        }
+
+        private bool IsAWardNear(Vector2 position)
+        {
+            List<GameObject> wardList = producedContext.Get(ProducedContextKey.Wards) as List<GameObject>;
+            foreach (var ward in wardList)
+            {
+                if (position.Distance(ward.Position) < context.wardSightRadius)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private InventorySlot GetWardSlot()
         {
+            InventorySlot ward;
+            if ((ward = GetItemSlot(ItemId.Warding_Totem_Trinket)) != null && ward.SpellSlot.IsReady())
+            {
+                return ward;
+            }
+
+            if ((ward = GetItemSlot(ItemId.Greater_Stealth_Totem_Trinket)) != null && ward.SpellSlot.IsReady())
+            {
+                return ward;
+            }
+
+            if ((ward = GetItemSlot(ItemId.Stealth_Ward)) != null && ward.SpellSlot.IsReady())
+            {
+                return ward;
+            }
+
+            if ((ward = GetItemSlot(ItemId.Sightstone)) != null && ward.SpellSlot.IsReady())
+            {
+                return ward;
+            }
+
+            if ((ward = GetItemSlot(ItemId.Ruby_Sightstone)) != null && ward.SpellSlot.IsReady())
+            {
+                return ward;
+            }
+
+            if ((ward = GetItemSlot(ItemId.Vision_Ward)) != null && ward.SpellSlot.IsReady())
+            {
+                return ward;
+            }
+
+            if ((ward = GetItemSlot(ItemId.Greater_Vision_Totem_Trinket)) != null && ward.SpellSlot.IsReady())
+            {
+                return ward;
+            }
+
             return null;
         }
 
-        protected virtual InventorySlot GetWardSkill()
+        protected virtual Spell GetWardSpell()
         {
-            // not many heroes can do skill warding so lets not make this abstract
+            // not many heroes can do spell warding so lets not make this abstract
             return null;
         }
 
@@ -438,24 +530,24 @@ namespace najsvan
             // figure out where to move
         }
 
-        private void MoveToDestination(Vector3 destination)
+        private void MoveToDestination(Vector2 destination)
         {
             if (destination.IsValid() &&
                 (!context.myHero.IsMoving ||
                  destination.Distance(context.myHero.Path.Last(), true) < context.myHero.BoundingRadius))
             {
-                serverInteractions.Add(() => { context.myHero.IssueOrder(GameObjectOrder.MoveTo, destination); });
+                serverInteractions.Add(() => { context.myHero.IssueOrder(GameObjectOrder.MoveTo, destination.To3D()); });
             }
         }
 
-        private List<Obj_AI_Hero> ForeachHeroes(HeroCondition cond)
+        private List<T> ForeachObject<T>(Condition<T> cond) where T : GameObject, new()
         {
-            var result = new List<Obj_AI_Hero>();
-            foreach (var hero in ObjectManager.Get<Obj_AI_Hero>())
+            var result = new List<T>();
+            foreach (var obj in ObjectManager.Get<T>())
             {
-                if (cond(hero))
+                if (cond(obj))
                 {
-                    result.Add(hero);
+                    result.Add(obj);
                 }
             }
             return result;
@@ -463,12 +555,17 @@ namespace najsvan
 
         public List<Obj_AI_Hero> Producer_EnemyHeroes()
         {
-            return ForeachHeroes(hero => hero.IsValid<Obj_AI_Hero>() && !hero.IsAlly && !hero.IsDead);
+            return ForeachObject<Obj_AI_Hero>(hero => hero.IsValid && !hero.IsAlly && !hero.IsDead);
         }
 
         public List<Obj_AI_Hero> Producer_AllyHeroes()
         {
-            return ForeachHeroes(hero => hero.IsValid<Obj_AI_Hero>() && hero.IsAlly && !hero.IsMe && !hero.IsDead);
+            return ForeachObject<Obj_AI_Hero>(hero => hero.IsValid && hero.IsAlly && !hero.IsMe && !hero.IsDead);
+        }
+
+        public List<GameObject> Producer_Wards()
+        {
+            return ForeachObject<GameObject>(obj => obj.IsValid && obj.IsVisible && obj.IsAlly && obj.Name.ToLower().Contains("ward"));
         }
 
         private delegate void ServerInteraction();

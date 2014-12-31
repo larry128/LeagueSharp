@@ -3,6 +3,7 @@
     public enum ProducedContextKey
     {
         EnemyHeroes,
-        AllyHeroes
+        AllyHeroes,
+        Wards
     }
 }

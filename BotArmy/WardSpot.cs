@@ -4,34 +4,29 @@ namespace najsvan
 {
     public class WardSpot
     {
-        private Vector2 position;
-        private readonly bool skillWardOnly;
+        private readonly Vector2 position;
+        private readonly bool spellWardOnly;
 
         public WardSpot(float x, float y)
         {
             position = new Vector2(x, y);
-            skillWardOnly = false;
+            spellWardOnly = false;
         }
 
-        public WardSpot(float x, float y, bool skillWardOnly)
+        public WardSpot(float x, float y, bool spellWardOnly)
         {
             position = new Vector2(x, y);
-            this.skillWardOnly = skillWardOnly;
+            this.spellWardOnly = spellWardOnly;
         }
 
-        public float GetX()
+        public Vector2 GetPosition()
         {
-            return position.X;
+            return position;
         }
 
-        public float GetY()
+        public bool GetSpellWardOnly()
         {
-            return position.Y;
-        }
-
-        public bool GetSkillWardOnly()
-        {
-            return skillWardOnly;
+            return spellWardOnly;
         }
     }
 }

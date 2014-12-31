@@ -19,6 +19,7 @@ namespace najsvan
         public readonly Obj_AI_Hero myHero = ObjectManager.Player;
         public readonly int wardPlaceDistance = 600;
         public readonly int tickDelay = 300;
+        public readonly int wardSightRadius = 1200;
 
         public readonly Dictionary<GameObjectTeam, List<WardSpot>> wardSpots = new Dictionary
             <GameObjectTeam, List<WardSpot>>
