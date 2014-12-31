@@ -120,7 +120,7 @@ namespace najsvan
                 "node.children == null || node.children.Count == 0");
             var methodName = prefix + node.name;
             var result = ProcessGenericNode(node, stack + node, funcProcessor, methodName);
-            STAT.Increment(treeName + "." + methodName);
+            STAT.Increment(treeName + ".json." + methodName);
             LOG.Debug(stack + node + " : " + result);
             return result;
         }

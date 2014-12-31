@@ -8,9 +8,9 @@ namespace najsvan
     public class Logger
     {
         private const String LOG_PATH_POSTFIX = "_runtime.log";
-        public bool debugEnabled = false;
         private static readonly Dictionary<String, Logger> LOGGER_CACHE = new Dictionary<String, Logger>();
         private static readonly String LOG_PATH_PREFIX = Config.LeagueSharpDirectory + "/Logs/";
+        public bool debugEnabled = false;
         public readonly String loggerName;
         private readonly String logPath;
 

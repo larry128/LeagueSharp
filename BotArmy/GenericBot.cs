@@ -10,8 +10,6 @@ namespace najsvan
 {
     public abstract class GenericBot
     {
-        protected delegate bool Condition<in T>(T hero);
-        protected delegate void Action<in T>(T change);
         protected GenericContext context;
         protected ProducedContext producedContext;
         private readonly JSONBTree bTree;
@@ -25,10 +23,11 @@ namespace najsvan
                 GetLogger().Info("Constructor");
                 var botName = GetType().Name;
                 Game.PrintChat(botName + " - Loading");
+                bTree = new JSONBTree(this, "GenericBot");
+
                 config = new Menu(botName, botName, true);
                 SetupMenu();
 
-                bTree = new JSONBTree(this, "GenericBot");
                 this.context = context;
                 SetupContext();
 
@@ -87,40 +86,54 @@ namespace najsvan
 
         private void SetupMenu()
         {
-            var configGenericBotDebug = new MenuItem("genericBotDebug", "GenericBot Debug");
+            var configBotDebug = new MenuItem("botDebug", GetType().Name + " Debug");
             // default value
-            configGenericBotDebug.SetValue(false);
-            Logger.GetLogger("GenericBot").debugEnabled = configGenericBotDebug.GetValue<bool>();
-            configGenericBotDebug.ValueChanged += ConfigGenericBotDebug_ValueChanged;
-            config.AddItem(configGenericBotDebug);
+            configBotDebug.SetValue(false);
+            GetLogger().debugEnabled = configBotDebug.GetValue<bool>();
+            configBotDebug.ValueChanged += ConfigBotDebug_ValueChanged;
+            config.AddItem(configBotDebug);
 
             var configJsonBTreeDebug = new MenuItem("jsonBTreeDebug", "JSONBTree Debug");
             // default value
             configJsonBTreeDebug.SetValue(false);
-            Logger.GetLogger("JSONBTree").debugEnabled = configJsonBTreeDebug.GetValue<bool>();
+            Logger.GetLogger(bTree.GetType().Name).debugEnabled = configJsonBTreeDebug.GetValue<bool>();
             configJsonBTreeDebug.ValueChanged += ConfigJsonBTreeDebug_ValueChanged;
             config.AddItem(configJsonBTreeDebug);
+
+            var configJsonBTreeStats = new MenuItem("jsonBTreeStats", "JSONBTree Stats");
+            // default value
+            configJsonBTreeStats.SetValue(false);
+            Statistics.GetStatistics(bTree.GetType().Name).writingEnabled = configJsonBTreeStats.GetValue<bool>();
+            configJsonBTreeStats.ValueChanged += ConfigJsonBTreeStats_ValueChanged;
+            config.AddItem(configJsonBTreeStats);
 
             config.AddToMainMenu();
         }
 
-        private void ConfigGenericBotDebug_ValueChanged(Object obj, OnValueChangeEventArgs args)
+        private void ConfigBotDebug_ValueChanged(Object obj, OnValueChangeEventArgs args)
         {
             var newValue = args.GetNewValue<bool>();
-            Logger.GetLogger("GenericBot").debugEnabled = newValue;
+            GetLogger().debugEnabled = newValue;
             args.Process = true;
         }
 
         private void ConfigJsonBTreeDebug_ValueChanged(Object obj, OnValueChangeEventArgs args)
         {
             var newValue = args.GetNewValue<bool>();
-            Logger.GetLogger("JSONBTree").debugEnabled = newValue;
+            Logger.GetLogger(bTree.GetType().Name).debugEnabled = newValue;
+            args.Process = true;
+        }
+
+        private void ConfigJsonBTreeStats_ValueChanged(Object obj, OnValueChangeEventArgs args)
+        {
+            var newValue = args.GetNewValue<bool>();
+            Statistics.GetStatistics(bTree.GetType().Name).writingEnabled = newValue;
             args.Process = true;
         }
 
         private void Game_OnWndProc(WndEventArgs args)
         {
-            if (args.Msg == (ulong)WindowsMessages.WM_KEYDOWN)
+            if (args.Msg == (ulong) WindowsMessages.WM_KEYDOWN)
             {
                 if (args.WParam == 0x75) // F6 - test shit
                 {
@@ -145,7 +158,7 @@ namespace najsvan
                     GetLogger()
                         .Error(
                             "Not all serverInteractions processed, pushing tick 50 * serverInteractions.Count millis.");
-                    context.lastTickProcessed += 50 * serverInteractions.Count;
+                    context.lastTickProcessed += 50*serverInteractions.Count;
                     return;
                 }
 
@@ -164,7 +177,7 @@ namespace najsvan
                 if (serverInteractions.Count > 0)
                 {
                     GetLogger().Debug("serverInteractions.Count: " + serverInteractions.Count);
-                    var timePerAction = context.tickDelay / (serverInteractions.Count + 1);
+                    var timePerAction = context.tickDelay/(serverInteractions.Count + 1);
                     var delay = 0;
                     foreach (var interaction in serverInteractions)
                     {
@@ -233,7 +246,7 @@ namespace najsvan
                                 if (!context.myHero.BuyItem(consumableLocal)) context.lastFailedBuy = context.currentTick;
                             }));
                     }
-                    context.shoppingListConsumables = new ItemId[] { };
+                    context.shoppingListConsumables = new ItemId[] {};
                 }
 
                 var nextToBuy = GetNextBuyItemId();
@@ -285,12 +298,12 @@ namespace najsvan
 
         private int GetSecondsSince(int actionTookPlaceAt)
         {
-            return (context.currentTick - actionTookPlaceAt) / 1000;
+            return (context.currentTick - actionTookPlaceAt)/1000;
         }
 
         private int GetMinutesSince(int actionTookPlaceAt)
         {
-            return (context.currentTick - actionTookPlaceAt) / 1000 / 60;
+            return (context.currentTick - actionTookPlaceAt)/1000/60;
         }
 
         private InventorySlot GetItemSlot(ItemId itemId)
@@ -426,22 +439,22 @@ namespace najsvan
             InventorySlot ward;
             var wardsUsed = new List<InventorySlot>();
 
-            ForeachServerInteraction<WardUsed>(change =>
-            {
-                wardsUsed.Add(change.wardSlot);
-            });
+            ForeachServerInteraction<WardUsed>(change => { wardsUsed.Add(change.wardSlot); });
 
-            if ((ward = GetItemSlot(ItemId.Warding_Totem_Trinket)) != null && ward.SpellSlot.IsReady() && !wardsUsed.Contains(ward))
+            if ((ward = GetItemSlot(ItemId.Warding_Totem_Trinket)) != null && ward.SpellSlot.IsReady() &&
+                !wardsUsed.Contains(ward))
             {
                 return ward;
             }
 
-            if ((ward = GetItemSlot(ItemId.Greater_Stealth_Totem_Trinket)) != null && ward.SpellSlot.IsReady() && !wardsUsed.Contains(ward))
+            if ((ward = GetItemSlot(ItemId.Greater_Stealth_Totem_Trinket)) != null && ward.SpellSlot.IsReady() &&
+                !wardsUsed.Contains(ward))
             {
                 return ward;
             }
 
-            if ((ward = GetItemSlot(ItemId.Stealth_Ward)) != null && ward.SpellSlot.IsReady() && !wardsUsed.Contains(ward))
+            if ((ward = GetItemSlot(ItemId.Stealth_Ward)) != null && ward.SpellSlot.IsReady() &&
+                !wardsUsed.Contains(ward))
             {
                 return ward;
             }
@@ -451,17 +464,20 @@ namespace najsvan
                 return ward;
             }
 
-            if ((ward = GetItemSlot(ItemId.Ruby_Sightstone)) != null && ward.SpellSlot.IsReady() && !wardsUsed.Contains(ward))
+            if ((ward = GetItemSlot(ItemId.Ruby_Sightstone)) != null && ward.SpellSlot.IsReady() &&
+                !wardsUsed.Contains(ward))
             {
                 return ward;
             }
 
-            if ((ward = GetItemSlot(ItemId.Vision_Ward)) != null && ward.SpellSlot.IsReady() && !wardsUsed.Contains(ward))
+            if ((ward = GetItemSlot(ItemId.Vision_Ward)) != null && ward.SpellSlot.IsReady() &&
+                !wardsUsed.Contains(ward))
             {
                 return ward;
             }
 
-            if ((ward = GetItemSlot(ItemId.Greater_Vision_Totem_Trinket)) != null && ward.SpellSlot.IsReady() && !wardsUsed.Contains(ward))
+            if ((ward = GetItemSlot(ItemId.Greater_Vision_Totem_Trinket)) != null && ward.SpellSlot.IsReady() &&
+                !wardsUsed.Contains(ward))
             {
                 return ward;
             }
@@ -488,6 +504,10 @@ namespace najsvan
         public abstract void Action_CastSafeSpells(Node node, String stack);
 
         public void Action_RecklessCastSummoners(Node node, String stack)
+        {
+        }
+
+        public void Action_RecklessCastItems(Node node, String stack)
         {
         }
 
@@ -607,7 +627,7 @@ namespace najsvan
 
         public float GetAdjustedAllyHealth(Obj_AI_Hero ally)
         {
-            float[] result = { ally.Health };
+            float[] result = {ally.Health};
             ForeachServerInteraction<AllyHealed>(healed =>
             {
                 if (healed.who.NetworkId == ally.NetworkId)
@@ -620,7 +640,7 @@ namespace najsvan
 
         public float GetAdjustedEnemyHealth(Obj_AI_Hero enemy)
         {
-            float[] result = { enemy.Health };
+            float[] result = {enemy.Health};
             ForeachServerInteraction<AllyHealed>(damaged =>
             {
                 if (damaged.who.NetworkId == enemy.NetworkId)
@@ -631,5 +651,9 @@ namespace najsvan
 
             return result[0];
         }
+
+        protected delegate bool Condition<in T>(T hero);
+
+        protected delegate void Action<in T>(T change);
     }
 }

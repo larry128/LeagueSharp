@@ -8,9 +8,10 @@ namespace najsvan
     public class Statistics
     {
         private const String STAT_PATH_POSTFIX = "_stats.log";
-        public bool writingEnabled = false;
+        private static readonly Dictionary<String, Statistics> STAT_CACHE = new Dictionary<String, Statistics>();
         private static readonly String STAT_PATH_PREFIX = Config.LeagueSharpDirectory + "/Logs/";
         private int incrementCounter;
+        public bool writingEnabled = false;
         private readonly Dictionary<String, int> stats = new Dictionary<String, int>();
         private readonly String statsPath;
 
@@ -21,7 +22,13 @@ namespace najsvan
 
         public static Statistics GetStatistics(String statName)
         {
-            return new Statistics(statName);
+            Statistics statistics;
+            if (!STAT_CACHE.TryGetValue(statName, out statistics))
+            {
+                statistics = new Statistics(statName);
+                STAT_CACHE.Add(statName, statistics);
+            }
+            return statistics;
         }
 
         public void Increment(String stat)
