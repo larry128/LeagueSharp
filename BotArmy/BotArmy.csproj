@@ -51,7 +51,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ExpectedChange.cs" />
-    <Compile Include="ItemRecipes.cs" />
+    <Compile Include="ItemMapper.cs" />
     <Compile Include="JSONBTree.cs" />
     <Compile Include="Assert.cs" />
     <Compile Include="GenericContext.cs" />
