@@ -11,8 +11,8 @@ namespace najsvan
 {
     public class JSONBTree
     {
-        private static readonly Logger LOG = Logger.GetLogger("JSONBTree");
-        private static readonly Statistics STAT = Statistics.GetStatistics("JSONBTree");
+        private static readonly Logger LOG = Logger.GetLogger(typeof(JSONBTree).Name);
+        private static readonly Statistics STAT = Statistics.GetStatistics(typeof(JSONBTree).Name);
         private readonly Object funcProcessor;
         private readonly Dictionary<String, MethodInfo> reflectionCache = new Dictionary<String, MethodInfo>();
         private readonly Dictionary<String, int[]> methodCallTimestamps = new Dictionary<String, int[]>();

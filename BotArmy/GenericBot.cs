@@ -278,61 +278,69 @@ namespace najsvan
             if ((context.myHero.InShop() || context.myHero.IsDead) && GetSecondsSince(context.lastFailedBuy) > 10)
             {
                 var nextToBuy = GetNextBuyItemId();
+                var elixir = ItemMapper.GetItem(context.shoppingListElixir);
                 // handle initial consumables first
                 if (context.shoppingListConsumables.Length > 0 && context.myHero.Level == 1)
                 {
                     foreach (var consumable in context.shoppingListConsumables)
                     {
                         var consumableLocal = consumable;
+                        var item = ItemMapper.GetItem(consumableLocal);
+                        if (item.HasValue && context.myHero.GoldCurrent >= item.Value.Price)
                         serverInteractions.Add(new ServerInteraction(new BuyItem(),
                             () =>
                             {
-                                if (!context.myHero.BuyItem(consumableLocal)) context.lastFailedBuy = context.currentTick;
+                                if (!context.myHero.BuyItem(consumableLocal)) {
+                                    context.lastFailedBuy = context.currentTick;
+                                    }
                             }));
                     }
                     context.shoppingListConsumables = new ItemId[] { };
                 }
-                else if (GetOccuppiedInventorySlots().Count == 7 && context.myHero.GoldCurrent > 400)
+                else if (nextToBuy.HasValue && context.myHero.GoldCurrent >= nextToBuy.Value.Price)
                 {
-                    var wardSlot = GetItemSlot(ItemId.Stealth_Ward);
-                    var manaPotSlot = GetItemSlot(ItemId.Mana_Potion);
-                    var healthPotSlot = GetItemSlot(ItemId.Health_Potion);
-                    if (wardSlot != null)
+                    if (GetOccuppiedInventorySlots().Count == 7)
                     {
-                        serverInteractions.Add(new ServerInteraction(new SellItem(),
-                            () => { context.myHero.SellItem(wardSlot.Slot); }));
+                        var wardSlot = GetItemSlot(ItemId.Stealth_Ward);
+                        var manaPotSlot = GetItemSlot(ItemId.Mana_Potion);
+                        var healthPotSlot = GetItemSlot(ItemId.Health_Potion);
+                        if (wardSlot != null)
+                        {
+                            serverInteractions.Add(new ServerInteraction(new SellItem(),
+                                () => { context.myHero.SellItem(wardSlot.Slot); }));
+                        }
+                        else if (manaPotSlot != null)
+                        {
+                            serverInteractions.Add(new ServerInteraction(new SellItem(),
+                                () => { context.myHero.SellItem(manaPotSlot.Slot); }));
+                        }
+                        else if (healthPotSlot != null)
+                        {
+                            serverInteractions.Add(new ServerInteraction(new SellItem(),
+                                () => { context.myHero.SellItem(healthPotSlot.Slot); }));
+                        }
                     }
-                    else if (manaPotSlot != null)
+                    else
                     {
-                        serverInteractions.Add(new ServerInteraction(new SellItem(),
-                            () => { context.myHero.SellItem(manaPotSlot.Slot); }));
-                    }
-                    else if (healthPotSlot != null)
-                    {
-                        serverInteractions.Add(new ServerInteraction(new SellItem(),
-                            () => { context.myHero.SellItem(healthPotSlot.Slot); }));
+                        serverInteractions.Add(new ServerInteraction(new BuyItem(),
+                            () =>
+                            {
+                                if (!context.myHero.BuyItem((ItemId)nextToBuy.Value.Id))
+                                {
+                                    context.lastFailedBuy = context.currentTick;
+                                }
+                            }));
                     }
                 }
-                else
+                else if (GetMinutesSince(context.lastElixirBought) > 3 && elixir.HasValue && context.myHero.GoldCurrent >= elixir.Value.Price)
                 {
-                    if (nextToBuy != ItemId.Unknown)
-                    {
-                        serverInteractions.Add(new ServerInteraction(new BuyItem(),
-                            () =>
-                            {
-                                if (!context.myHero.BuyItem(nextToBuy)) context.lastFailedBuy = context.currentTick;
-                            }));
-                    }
-                    else if (GetMinutesSince(context.lastElixirBought) > 3)
-                    {
-                        serverInteractions.Add(new ServerInteraction(new BuyItem(),
-                            () =>
-                            {
-                                if (!context.myHero.BuyItem(context.shoppingListElixir))
-                                    context.lastFailedBuy = context.currentTick;
-                            }));
-                        context.lastElixirBought = context.currentTick;
-                    }
+                    serverInteractions.Add(new ServerInteraction(new BuyItem(),
+                        () =>
+                        {
+                            if (!context.myHero.BuyItem(context.shoppingListElixir))
+                                context.lastFailedBuy = context.currentTick;
+                        }));
+                    context.lastElixirBought = context.currentTick;
                 }
             }
         }
@@ -359,12 +367,12 @@ namespace najsvan
             return null;
         }
 
-        private ItemId GetNextBuyItemId()
+        private ItemData.Item? GetNextBuyItemId()
         {
             if (context.shoppingList.Length > 0)
             {
                 // expand inventory list
-                var expandedInventory = new List<ItemId>();
+                var expandedInventory = new List<int>();
                 foreach (var inventorySlot in GetOccuppiedInventorySlots())
                 {
                     ExpandRecipe(inventorySlot.Id, expandedInventory);
@@ -373,25 +381,26 @@ namespace najsvan
                 // reduce expandedInventoryList
                 foreach (var itemId in context.shoppingList)
                 {
-                    if (!expandedInventory.Remove(itemId))
+                    if (!expandedInventory.Remove((int)itemId))
                     {
-                        return itemId;
+                        ItemMapper.GetItem(itemId);
                     }
                 }
             }
-            return ItemId.Unknown;
+            return null;
         }
 
-        private void ExpandRecipe(ItemId itemId, List<ItemId> into)
+        private void ExpandRecipe(ItemId itemId, List<int> into)
         {
-            into.Add(itemId);
-            var recipe = ItemRecipes.GetRecipe(itemId);
-            if (recipe != null)
+            into.Add((int)itemId);
+            var item = ItemMapper.GetItem(itemId);
+            if (item != null && item.Value.RecipeItems != null && item.Value.RecipeItems.Length > 0)
             {
+                var recipe = item.Value.RecipeItems;
                 into.AddRange(recipe);
                 foreach (var id in recipe)
                 {
-                    ExpandRecipe(id, into);
+                    ExpandRecipe((ItemId)id, into);
                 }
             }
         }
@@ -539,7 +548,6 @@ namespace najsvan
         public void Action_RecklessCastSummoners(Node node, String stack)
         {
             var lowestHpAllyHealRange = GetLowestHpAlly(context.summonerHealRange);
-
         }
 
         private Obj_AI_Hero GetLowestHpAlly(float range)
