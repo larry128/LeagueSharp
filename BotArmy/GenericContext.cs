@@ -22,7 +22,8 @@ namespace najsvan
         public SpellSlot summonerFlash;
         public Vector3 lastDestination = Vector3.Zero;
         public List<Obj_AI_Hero> allies = new List<Obj_AI_Hero>();
-        public List<Obj_AI_Hero> enemies = new List<Obj_AI_Hero>(); 
+        public List<Obj_AI_Hero> enemies = new List<Obj_AI_Hero>();
+        public Dictionary<int, TrackedHeroInfo> heroesInfo = new Dictionary<int, TrackedHeroInfo>();
         public readonly Obj_AI_Hero myHero = ObjectManager.Player;
         public readonly int tickDelay = 100;
         public readonly int wardPlaceDistance = 600;

@@ -8,7 +8,7 @@ namespace najsvan
 {
     class TooFastException : Exception
     {
-        private TooFastException()
+        public TooFastException()
             : base("JSONBTree node requests to be executed later")
         {
         }

@@ -94,8 +94,10 @@ namespace najsvan
             context.summonerFlash = context.myHero.GetSpellSlot("summonerflash", true);
             context.summonerIgnite = context.myHero.GetSpellSlot("summonerdot", true);
 
-            context.enemies = ForeachGameObject<Obj_AI_Hero>(hero => !hero.IsAlly);
-            context.allies = ForeachGameObject<Obj_AI_Hero>(hero => hero.IsAlly);
+            context.enemies = ForEachGameObject<Obj_AI_Hero>(hero => !hero.IsAlly);
+            context.enemies.ForEach(hero => { context.heroesInfo.Add(hero.NetworkId, new TrackedHeroInfo(hero)); });
+            context.allies = ForEachGameObject<Obj_AI_Hero>(hero => hero.IsAlly);
+            context.allies.ForEach(hero => { context.heroesInfo.Add(hero.NetworkId, new TrackedHeroInfo(hero)); });
         }
 
         private void SetupMenu()
@@ -159,7 +161,7 @@ namespace najsvan
         private void Game_OnGameEnd(EventArgs args)
         {
             GetLogger().Info("Game_OnGameEnd");
-            // quit game somehow
+            Utility.DelayAction.Add(10000, () => { Environment.Exit(0); });
         }
 
         private void Game_OnGameUpdate(EventArgs args)
@@ -241,7 +243,7 @@ namespace najsvan
             return Logger.GetLogger(GetType().Name);
         }
 
-        public void Action_Scan(Node node, String stack)
+        public void Action_Track(Node node, String stack)
         {
         }
 
@@ -262,7 +264,7 @@ namespace najsvan
 
         public void Action_Buy(Node node, String stack)
         {
-            bTree.OnlyOncePer(1000);
+            bTree.OnlyOncePer(500);
 
             // if you fail to buy at any point you have a 10 seconds timeout
             if ((context.myHero.InShop() || context.myHero.IsDead) && GetSecondsSince(context.lastFailedBuy) > 10)
@@ -282,7 +284,7 @@ namespace najsvan
                     }
                     context.shoppingListConsumables = new ItemId[] { };
                 }
-                else if (GetOccuppiedInventorySlots().Count == 7)
+                else if (GetOccuppiedInventorySlots().Count == 7 && GetSecondsSince(context.lastFailedBuy) < 15)
                 {
                     var wardSlot = GetItemSlot(ItemId.Stealth_Ward);
                     var manaPotSlot = GetItemSlot(ItemId.Mana_Potion);
@@ -436,7 +438,7 @@ namespace najsvan
 
                                         if (wardSlot != null)
                                         {
-                                            var wardSlotSpell = new Spell(wardSlot.SpellSlot, context.wardPlaceDistance);
+                                            var wardSlotSpell = new Spell(wardSlot.SpellSlot, GetHitboxDistance(context.wardPlaceDistance));
                                             if (wardSlotSpell.InRange(position.To3D()))
                                             {
                                                 serverInteractions.Add(new ServerInteraction(new WardUsed(wardSlot),
@@ -470,7 +472,7 @@ namespace najsvan
             InventorySlot ward;
             var wardsUsed = new List<InventorySlot>();
 
-            ForeachServerInteraction<WardUsed>(change => { wardsUsed.Add(change.wardSlot); });
+            ForEachServerInteraction<WardUsed>(change => { wardsUsed.Add(change.wardSlot); });
 
             if ((ward = GetItemSlot(ItemId.Warding_Totem_Trinket)) != null && ward.SpellSlot.IsReady() &&
                 !wardsUsed.Contains(ward))
@@ -539,7 +541,7 @@ namespace najsvan
 
             context.allies.ForEach(ally =>
             {
-                if (ally.Distance(context.myHero) < range + GetHitbox(ally) && !ally.InFountain())
+                if (GetHitboxDistance(context.myHero, ally) < range && !ally.InFountain())
                 {
                     var adjustedAllyHealth = GetAdjustedAllyHealth(ally);
                     if (adjustedAllyHealth < lowestHP && adjustedAllyHealth > 1)
@@ -552,9 +554,14 @@ namespace najsvan
             return lowestHPAlly;
         }
 
-        private float GetHitbox(GameObject obj)
+        private float GetHitboxDistance(GameObject obj, GameObject obj2)
         {
-            return obj.BoundingRadius - 4;
+            return obj.Position.Distance(obj2.Position) + obj.BoundingRadius + obj2.BoundingRadius - 8;
+        }
+
+        private float GetHitboxDistance(float distance)
+        {
+            return distance + context.myHero.BoundingRadius + 40;
         }
 
         public void Action_RecklessCastItems(Node node, String stack)
@@ -633,7 +640,7 @@ namespace najsvan
 
         }
 
-        protected List<T> ForeachGameObject<T>(Condition<T> cond) where T : GameObject, new()
+        protected List<T> ForEachGameObject<T>(Condition<T> cond) where T : GameObject, new()
         {
             var result = new List<T>();
             foreach (var obj in ObjectManager.Get<T>())
@@ -646,7 +653,7 @@ namespace najsvan
             return result;
         }
 
-        protected void ForeachServerInteraction<T>(Action<T> action) where T : ExpectedChange
+        protected void ForEachServerInteraction<T>(Action<T> action) where T : ExpectedChange
         {
             foreach (var serverInteraction in serverInteractions)
             {
@@ -661,14 +668,14 @@ namespace najsvan
         private List<GameObject> Producer_Wards()
         {
             return
-                ForeachGameObject<GameObject>(
+                ForEachGameObject<GameObject>(
                     obj => obj.IsValid && obj.IsVisible && obj.IsAlly && obj.Name.ToLower().Contains("ward"));
         }
 
         private float GetAdjustedAllyHealth(Obj_AI_Hero ally)
         {
             float[] result = { ally.Health };
-            ForeachServerInteraction<AllyHealed>(healed =>
+            ForEachServerInteraction<AllyHealed>(healed =>
             {
                 if (healed.who.NetworkId == ally.NetworkId)
                 {
@@ -681,7 +688,7 @@ namespace najsvan
         private float GetAdjustedEnemyHealth(Obj_AI_Hero enemy)
         {
             float[] result = { enemy.Health };
-            ForeachServerInteraction<AllyHealed>(damaged =>
+            ForEachServerInteraction<AllyHealed>(damaged =>
             {
                 if (damaged.who.NetworkId == enemy.NetworkId)
                 {
