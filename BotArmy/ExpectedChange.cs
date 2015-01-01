@@ -1,4 +1,5 @@
 ﻿using LeagueSharp;
+using SharpDX;
 
 namespace najsvan
 {
@@ -32,6 +33,12 @@ namespace najsvan
 
     public class MovingTo : ExpectedChange
     {
+        public readonly Vector3 destination;
+
+        public MovingTo(Vector3 destination)
+        {
+            this.destination = destination;
+        }
     }
 
     public class WardUsed : ExpectedChange

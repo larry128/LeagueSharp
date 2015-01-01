@@ -15,8 +15,10 @@ namespace najsvan
         private static readonly Statistics STAT = Statistics.GetStatistics("JSONBTree");
         private readonly Object funcProcessor;
         private readonly Dictionary<String, MethodInfo> reflectionCache = new Dictionary<String, MethodInfo>();
+        private readonly Dictionary<String, int[]> methodCallTimestamps = new Dictionary<String, int[]>();
         private readonly Tree tree;
         private readonly String treeName;
+        private String callingMethod;
 
         public JSONBTree(Object funcProcessor, String treeName)
         {
@@ -137,20 +139,67 @@ namespace najsvan
             if (!reflectionCache.TryGetValue(simpleSignature, out method))
             {
                 var type = processor.GetType();
-                method = type.GetRuntimeMethod(methodName, new[] {node.GetType(), stack.GetType()});
+                method = type.GetRuntimeMethod(methodName, new[] { node.GetType(), stack.GetType() });
                 Assert.True(method != null, "GetMethod: null for : " + methodName + " in " + type.Name);
                 reflectionCache.Add(simpleSignature, method);
             }
 
-            var invokeResult = method.Invoke(processor, new object[] {node, stack});
-            bool methodResult;
-
-            if (invokeResult != null && Boolean.TryParse(invokeResult.ToString(), out methodResult))
+            try
             {
-                return methodResult;
+                callingMethod = methodName;
+                var invokeResult = method.Invoke(processor, new object[] { node, stack });
+                callingMethod = null;
+
+                int[] timestamp;
+                if (!methodCallTimestamps.TryGetValue(methodName, out timestamp))
+                {
+                    methodCallTimestamps.Add(methodName, new[] { Environment.TickCount });
+                }
+                else
+                {
+                    timestamp[0] = Environment.TickCount;
+                }
+
+                bool methodResult;
+
+                if (invokeResult != null && Boolean.TryParse(invokeResult.ToString(), out methodResult))
+                {
+                    return methodResult;
+                }
+            }
+            catch (TargetInvocationException e)
+            {
+                Exception inner = e;
+                
+                while (inner.InnerException != null)
+                {
+                    inner = inner.InnerException;
+                }
+                if (inner is TooFastException)
+                {
+                    // no worries
+                }
+                else 
+                {
+                    throw inner;
+                }
             }
             return true;
         }
+
+        public void OnlyOncePer(int millis)
+        {
+            Assert.False(callingMethod == null, "callingMethod == null");
+            int[] timestamp;
+            if (methodCallTimestamps.TryGetValue(callingMethod, out timestamp))
+            {
+                if ((Environment.TickCount - timestamp[0]) < millis)
+                {
+                    throw new TooFastException();
+                }
+            }
+        }
+
     }
 
     [DataContract]
@@ -193,7 +242,7 @@ namespace najsvan
             using (var ms = new MemoryStream(Encoding.Unicode.GetBytes(json)))
             {
                 var serializer = new DataContractJsonSerializer(obj.GetType());
-                obj = (T) serializer.ReadObject(ms);
+                obj = (T)serializer.ReadObject(ms);
                 ms.Close();
                 ms.Dispose();
                 return obj;
