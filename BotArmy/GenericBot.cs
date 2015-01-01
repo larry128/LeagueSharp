@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using LeagueSharp;
 using LeagueSharp.Common;
 using SharpDX;
@@ -55,6 +57,7 @@ namespace najsvan
 
         private void StopProcessing()
         {
+            Obj_AI_Base.OnProcessSpellCast -= Obj_AI_Base_OnProcessSpellCast;
             CustomEvents.Game.OnGameEnd -= Game_OnGameEnd;
             Game.OnGameUpdate -= Game_OnGameUpdate;
             Game.OnWndProc -= Game_OnWndProc;
@@ -153,7 +156,7 @@ namespace najsvan
             {
                 if (args.WParam == 0x75) // F6 - test shit
                 {
-                    Game.PrintChat("context.myHero.Team: " + context.myHero.Team);
+                    Game.PrintChat("...");
                 }
             }
         }
@@ -161,7 +164,12 @@ namespace najsvan
         private void Game_OnGameEnd(EventArgs args)
         {
             GetLogger().Info("Game_OnGameEnd");
-            Utility.DelayAction.Add(10000, () => { Environment.Exit(0); });
+            Thread oThread = new Thread(new ThreadStart(() =>
+            {
+                Thread.Sleep(20000);
+                Environment.Exit(0);
+            }));
+            oThread.Start();
         }
 
         private void Game_OnGameUpdate(EventArgs args)
@@ -284,7 +292,7 @@ namespace najsvan
                     }
                     context.shoppingListConsumables = new ItemId[] { };
                 }
-                else if (GetOccuppiedInventorySlots().Count == 7 && GetSecondsSince(context.lastFailedBuy) < 15)
+                else if (GetOccuppiedInventorySlots().Count == 7 && context.myHero.GoldCurrent > 400)
                 {
                     var wardSlot = GetItemSlot(ItemId.Stealth_Ward);
                     var manaPotSlot = GetItemSlot(ItemId.Mana_Potion);
@@ -632,7 +640,7 @@ namespace najsvan
 
         protected void SafeMoveToDestination(Vector3 destination)
         {
-            if (destination.IsValid() && (!context.myHero.IsMoving || !destination.Equals(context.lastDestination)))
+            if (destination.IsValid() && (!context.myHero.IsMoving || destination.Distance(context.lastDestination) > context.myHero.BoundingRadius))
             {
                 serverInteractions.Add(new ServerInteraction(new MovingTo(destination),
                     () => { context.myHero.IssueOrder(GameObjectOrder.MoveTo, destination); }));
