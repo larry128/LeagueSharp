@@ -14,6 +14,7 @@ namespace najsvan
     {
         protected GenericContext context;
         protected ProducedContext producedContext;
+        protected TargetFinder targetFinder;
         private readonly JSONBTree bTree;
         private readonly Menu config;
         private readonly List<ServerInteraction> serverInteractions = new List<ServerInteraction>();
@@ -35,7 +36,7 @@ namespace najsvan
 
                 producedContext = new ProducedContext();
                 SetupProducedContextCallbacks();
-
+                targetFinder = new TargetFinder(context, producedContext, serverInteractions);
                 StartProcessing();
             }
             catch (Exception e)
@@ -97,9 +98,9 @@ namespace najsvan
             context.summonerFlash = context.myHero.GetSpellSlot("summonerflash", true);
             context.summonerIgnite = context.myHero.GetSpellSlot("summonerdot", true);
 
-            context.enemies = ForEachGameObject<Obj_AI_Hero>(hero => !hero.IsAlly);
+            context.enemies = ProcessEachGameObject<Obj_AI_Hero>(hero => !hero.IsAlly);
             context.enemies.ForEach(hero => { context.heroesInfo.Add(hero.NetworkId, new TrackedHeroInfo(hero)); });
-            context.allies = ForEachGameObject<Obj_AI_Hero>(hero => hero.IsAlly);
+            context.allies = ProcessEachGameObject<Obj_AI_Hero>(hero => hero.IsAlly);
             context.allies.ForEach(hero => { context.heroesInfo.Add(hero.NetworkId, new TrackedHeroInfo(hero)); });
         }
 
@@ -455,7 +456,7 @@ namespace najsvan
 
                                         if (wardSlot != null)
                                         {
-                                            var wardSlotSpell = new Spell(wardSlot.SpellSlot, GetHitboxDistance(context.wardPlaceDistance));
+                                            var wardSlotSpell = new Spell(wardSlot.SpellSlot, TargetFinder.GetHitboxDistance(context.wardPlaceDistance, context.myHero));
                                             if (wardSlotSpell.InRange(position.To3D()))
                                             {
                                                 serverInteractions.Add(new ServerInteraction(new WardUsed(wardSlot),
@@ -489,7 +490,14 @@ namespace najsvan
             InventorySlot ward;
             var wardsUsed = new List<InventorySlot>();
 
-            ForEachServerInteraction<WardUsed>(change => { wardsUsed.Add(change.wardSlot); });
+            serverInteractions.ForEach(interaction =>
+            {
+                var wardUsed = interaction.change as WardUsed;
+                if (wardUsed != null)
+                {
+                    wardsUsed.Add(wardUsed.wardSlot);
+                }
+            });
 
             if ((ward = GetItemSlot(ItemId.Warding_Totem_Trinket)) != null && ward.SpellSlot.IsReady() &&
                 !wardsUsed.Contains(ward))
@@ -547,37 +555,7 @@ namespace najsvan
 
         public void Action_RecklessCastSummoners(Node node, String stack)
         {
-            var lowestHpAllyHealRange = GetLowestHpAlly(context.summonerHealRange);
-        }
-
-        private Obj_AI_Hero GetLowestHpAlly(float range)
-        {
-            Obj_AI_Hero lowestHPAlly = null;
-            float lowestHP = float.MaxValue;
-
-            context.allies.ForEach(ally =>
-            {
-                if (GetHitboxDistance(context.myHero, ally) < range && !ally.InFountain())
-                {
-                    var adjustedAllyHealth = GetAdjustedAllyHealth(ally);
-                    if (adjustedAllyHealth < lowestHP && adjustedAllyHealth > 1)
-                    {
-                        lowestHPAlly = ally;
-                        lowestHP = adjustedAllyHealth;
-                    }
-                }
-            });
-            return lowestHPAlly;
-        }
-
-        private float GetHitboxDistance(GameObject obj, GameObject obj2)
-        {
-            return obj.Position.Distance(obj2.Position) + obj.BoundingRadius + obj2.BoundingRadius - 8;
-        }
-
-        private float GetHitboxDistance(float distance)
-        {
-            return distance + context.myHero.BoundingRadius + 40;
+            var lowestHpAllyHealRange = targetFinder.GetLowestHpAlly(context.summonerHealRange);
         }
 
         public void Action_RecklessCastItems(Node node, String stack)
@@ -656,7 +634,7 @@ namespace najsvan
 
         }
 
-        protected List<T> ForEachGameObject<T>(Condition<T> cond) where T : GameObject, new()
+        protected List<T> ProcessEachGameObject<T>(Condition<T> cond) where T : GameObject, new()
         {
             var result = new List<T>();
             foreach (var obj in ObjectManager.Get<T>())
@@ -669,50 +647,11 @@ namespace najsvan
             return result;
         }
 
-        protected void ForEachServerInteraction<T>(Action<T> action) where T : ExpectedChange
-        {
-            foreach (var serverInteraction in serverInteractions)
-            {
-                var change = serverInteraction.change as T;
-                if (change != null)
-                {
-                    action(change);
-                }
-            }
-        }
-
         private List<GameObject> Producer_Wards()
         {
             return
-                ForEachGameObject<GameObject>(
+                ProcessEachGameObject<GameObject>(
                     obj => obj.IsValid && obj.IsVisible && obj.IsAlly && obj.Name.ToLower().Contains("ward"));
-        }
-
-        private float GetAdjustedAllyHealth(Obj_AI_Hero ally)
-        {
-            float[] result = { ally.Health };
-            ForEachServerInteraction<AllyHealed>(healed =>
-            {
-                if (healed.who.NetworkId == ally.NetworkId)
-                {
-                    result[0] += healed.amount;
-                }
-            });
-            return result[0];
-        }
-
-        private float GetAdjustedEnemyHealth(Obj_AI_Hero enemy)
-        {
-            float[] result = { enemy.Health };
-            ForEachServerInteraction<AllyHealed>(damaged =>
-            {
-                if (damaged.who.NetworkId == enemy.NetworkId)
-                {
-                    result[0] -= damaged.amount;
-                }
-            });
-
-            return result[0];
         }
 
         private List<InventorySlot> GetOccuppiedInventorySlots()
