@@ -1,5 +1,4 @@
-﻿
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using LeagueSharp;
 using LeagueSharp.Common;
 
@@ -7,75 +6,46 @@ namespace najsvan
 {
     public class TargetFinder
     {
-        private GenericContext context;        
-        private ProducedContext producedContext;
-        private List<ServerInteraction> serverInteractions;
-
-        public TargetFinder(GenericContext context, ProducedContext producedContext, List<ServerInteraction> serverInteractions)
+        public static Obj_AI_Hero FindRecklessHelpAlly(float range)
         {
-            this.context = context;
-            this.producedContext = producedContext;
-            this.serverInteractions = serverInteractions;
-        }
+            Obj_AI_Hero lowestHpAlly = null;
+            var lowestHp = float.MaxValue;
 
-        private float GetAdjustedAllyHealth(Obj_AI_Hero ally)
-        {
-            float[] result = { ally.Health };
-            serverInteractions.ForEach(interaction =>
+            GenericContext.allies.ForEach(ally =>
             {
-                var healed = interaction.change as AllyHealed;
-                if (healed != null && healed.who.NetworkId == ally.NetworkId)
+                if (BotUtils.GetHitboxDistance(GenericContext.MY_HERO, ally) < range && !ally.InFountain())
                 {
-                    result[0] += healed.amount;
-                }
-            });
-            return result[0];
-        }
-
-        private float GetAdjustedEnemyHealth(Obj_AI_Hero enemy)
-        {
-            float[] result = { enemy.Health };
-            serverInteractions.ForEach(interaction =>
-            {
-                var damaged = interaction.change as EnemyDamaged;
-                if (damaged != null && damaged.who.NetworkId == enemy.NetworkId)
-                {
-                    result[0] -= damaged.amount;
-                }
-            });
-
-            return result[0];
-        }
-
-        public Obj_AI_Hero GetLowestHpAlly(float range)
-        {
-            Obj_AI_Hero lowestHPAlly = null;
-            float lowestHP = float.MaxValue;
-
-            context.allies.ForEach(ally =>
-            {
-                if (GetHitboxDistance(context.myHero, ally) < range && !ally.InFountain())
-                {
-                    var adjustedAllyHealth = GetAdjustedAllyHealth(ally);
-                    if (adjustedAllyHealth < lowestHP && adjustedAllyHealth > 1)
+                    var adjustedAllyHealth = BotUtils.GetAdjustedAllyHealth(ally);
+                    if (adjustedAllyHealth < lowestHp && adjustedAllyHealth > 1)
                     {
-                        lowestHPAlly = ally;
-                        lowestHP = adjustedAllyHealth;
+                        var enemies = GetDangerousEnemiesInRange(ally, GenericContext.SCAN_DISTANCE);
+                        if ((enemies.Count > 0 || ally.UnderTurret(true)) &&
+                            ally.Health < BotUtils.GetTypicalHp(ally.Level, GenericContext.PANIC_UNDER_PERCENT))
+                        {
+                            lowestHpAlly = ally;
+                            lowestHp = adjustedAllyHealth;
+                        }
                     }
                 }
             });
-            return lowestHPAlly;
+            return lowestHpAlly;
         }
 
-        public static float GetHitboxDistance(float distance, GameObject obj)
+        private static List<Obj_AI_Hero> GetDangerousEnemiesInRange(Obj_AI_Hero ally, int range)
         {
-            return distance + obj.BoundingRadius + 40;
+            var result = new List<Obj_AI_Hero>();
+            if (ally != null)
+            {
+                GenericContext.enemies.ForEach(enemy =>
+                {
+                    if (!enemy.IsDead && ally.Distance(enemy) < range && BotUtils.GetAdjustedEnemyHealth(enemy) > 0 &&
+                        !enemy.IsStunned)
+                    {
+                        result.Add(enemy);
+                    }
+                });
+            }
+            return result;
         }
-
-        public static float GetHitboxDistance(GameObject obj, GameObject obj2)
-        {
-            return obj.Position.Distance(obj2.Position) + obj.BoundingRadius + obj2.BoundingRadius - 8;
-        }
-
     }
 }

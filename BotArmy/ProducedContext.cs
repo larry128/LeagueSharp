@@ -7,10 +7,10 @@ namespace najsvan
     {
         public delegate Object Producer();
 
-        private readonly Dictionary<ProducedContextKey, KeyValuePair<Producer, Object[]>> context =
+        private static readonly Dictionary<ProducedContextKey, KeyValuePair<Producer, Object[]>> context =
             new Dictionary<ProducedContextKey, KeyValuePair<Producer, Object[]>>();
 
-        public Object Get(ProducedContextKey key)
+        public static Object Get(ProducedContextKey key)
         {
             KeyValuePair<Producer, Object[]> pair;
             if (context.TryGetValue(key, out pair))
@@ -26,7 +26,7 @@ namespace najsvan
             return null;
         }
 
-        public void Clear()
+        public static void Clear()
         {
             foreach (var value in context.Values)
             {
@@ -34,7 +34,7 @@ namespace najsvan
             }
         }
 
-        public void Set(ProducedContextKey key, Producer prod)
+        public static void Set(ProducedContextKey key, Producer prod)
         {
             Assert.False(context.ContainsKey(key), "Trying to set producer for key " + key + " multiple times");
             context.Add(key, new KeyValuePair<Producer, Object[]>(prod, new Object[] {null}));

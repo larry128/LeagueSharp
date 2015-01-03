@@ -54,9 +54,9 @@ namespace najsvan
     public class EnemyDamaged : ExpectedChange
     {
         public readonly float amount;
-        public readonly Obj_AI_Hero who;
+        public readonly Obj_AI_Hero[] who;
 
-        public EnemyDamaged(Obj_AI_Hero who, float amount)
+        public EnemyDamaged(Obj_AI_Hero[] who, float amount)
         {
             this.amount = amount;
             this.who = who;
@@ -74,9 +74,9 @@ namespace najsvan
     public class AllyHealed : ExpectedChange
     {
         public readonly float amount;
-        public readonly Obj_AI_Hero who;
+        public readonly Obj_AI_Hero[] who;
 
-        public AllyHealed(Obj_AI_Hero who, float amount)
+        public AllyHealed(Obj_AI_Hero[] who, float amount)
         {
             this.amount = amount;
             this.who = who;

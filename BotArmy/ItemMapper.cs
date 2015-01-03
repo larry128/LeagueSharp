@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Reflection;
 using LeagueSharp;
 using LeagueSharp.Common;
 
@@ -14,11 +13,11 @@ namespace najsvan
             if (ITEM_MAP == null)
             {
                 ITEM_MAP = new Dictionary<ItemId, ItemData.Item>();
-                FieldInfo[] fields = typeof(ItemData).GetFields();
+                var fields = typeof (ItemData).GetFields();
                 foreach (var field in fields)
                 {
-                    var item = (ItemData.Item)field.GetRawConstantValue();
-                    var itemId = (ItemId)item.Id;
+                    var item = (ItemData.Item) field.GetRawConstantValue();
+                    var itemId = (ItemId) item.Id;
                     ITEM_MAP.Add(itemId, item);
                 }
             }
@@ -28,10 +27,7 @@ namespace najsvan
             {
                 return result;
             }
-            else
-            {
-                return null;
-            }
+            return null;
         }
     }
 }

@@ -11,14 +11,14 @@ namespace najsvan
 {
     public class JSONBTree
     {
-        private static readonly Logger LOG = Logger.GetLogger(typeof(JSONBTree).Name);
-        private static readonly Statistics STAT = Statistics.GetStatistics(typeof(JSONBTree).Name);
+        private static readonly Logger LOG = Logger.GetLogger(typeof (JSONBTree).Name);
+        private static readonly Statistics STAT = Statistics.GetStatistics(typeof (JSONBTree).Name);
+        private String callingMethod;
         private readonly Object funcProcessor;
-        private readonly Dictionary<String, MethodInfo> reflectionCache = new Dictionary<String, MethodInfo>();
         private readonly Dictionary<String, int[]> methodCallTimestamps = new Dictionary<String, int[]>();
+        private readonly Dictionary<String, MethodInfo> reflectionCache = new Dictionary<String, MethodInfo>();
         private readonly Tree tree;
         private readonly String treeName;
-        private String callingMethod;
 
         public JSONBTree(Object funcProcessor, String treeName)
         {
@@ -139,7 +139,7 @@ namespace najsvan
             if (!reflectionCache.TryGetValue(simpleSignature, out method))
             {
                 var type = processor.GetType();
-                method = type.GetRuntimeMethod(methodName, new[] { node.GetType(), stack.GetType() });
+                method = type.GetRuntimeMethod(methodName, new[] {node.GetType(), stack.GetType()});
                 Assert.True(method != null, "GetMethod: null for : " + methodName + " in " + type.Name);
                 reflectionCache.Add(simpleSignature, method);
             }
@@ -147,13 +147,13 @@ namespace najsvan
             try
             {
                 callingMethod = methodName;
-                var invokeResult = method.Invoke(processor, new object[] { node, stack });
+                var invokeResult = method.Invoke(processor, new object[] {node, stack});
                 callingMethod = null;
 
                 int[] timestamp;
                 if (!methodCallTimestamps.TryGetValue(methodName, out timestamp))
                 {
-                    methodCallTimestamps.Add(methodName, new[] { Environment.TickCount });
+                    methodCallTimestamps.Add(methodName, new[] {Environment.TickCount});
                 }
                 else
                 {
@@ -170,7 +170,7 @@ namespace najsvan
             catch (TargetInvocationException e)
             {
                 Exception inner = e;
-                
+
                 while (inner.InnerException != null)
                 {
                     inner = inner.InnerException;
@@ -179,7 +179,7 @@ namespace najsvan
                 {
                     // no worries
                 }
-                else 
+                else
                 {
                     throw inner;
                 }
@@ -199,7 +199,6 @@ namespace najsvan
                 }
             }
         }
-
     }
 
     [DataContract]
@@ -242,7 +241,7 @@ namespace najsvan
             using (var ms = new MemoryStream(Encoding.Unicode.GetBytes(json)))
             {
                 var serializer = new DataContractJsonSerializer(obj.GetType());
-                obj = (T)serializer.ReadObject(ms);
+                obj = (T) serializer.ReadObject(ms);
                 ms.Close();
                 ms.Dispose();
                 return obj;

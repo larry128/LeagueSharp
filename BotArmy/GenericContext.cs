@@ -4,33 +4,38 @@ using SharpDX;
 
 namespace najsvan
 {
-    public abstract class GenericContext
+    public static class GenericContext
     {
-        public Obj_SpawnPoint allySpawn;
-        public int currentTick = 0;
-        public Obj_SpawnPoint enemySpawn;
-        public int lastElixirBought = 0;
-        public int lastFailedBuy = 0;
-        public int lastTickProcessed = 0;
-        public int lastWardDropped = 0;
-        public SpellSlot[] levelSpellsOrder;
-        public ItemId[] shoppingList;
-        public ItemId[] shoppingListConsumables;
-        public ItemId shoppingListElixir;
-        public SpellSlot summonerHeal;
-        public SpellSlot summonerIgnite;
-        public SpellSlot summonerFlash;
-        public Vector3 lastDestination = Vector3.Zero;
-        public List<Obj_AI_Hero> allies = new List<Obj_AI_Hero>();
-        public List<Obj_AI_Hero> enemies = new List<Obj_AI_Hero>();
-        public Dictionary<int, TrackedHeroInfo> heroesInfo = new Dictionary<int, TrackedHeroInfo>();
-        public readonly Obj_AI_Hero myHero = ObjectManager.Player;
-        public readonly int tickDelay = 100;
-        public readonly int wardPlaceDistance = 600;
-        public readonly int summonerHealRange = 700;
-        public readonly int wardSightRadius = 1200;
+        public static Obj_SpawnPoint allySpawn;
+        public static int currentTick = 0;
+        public static Obj_SpawnPoint enemySpawn;
+        public static int lastElixirBought = 0;
+        public static int lastFailedBuy = 0;
+        public static int lastTickProcessed = 0;
+        public static int lastWardDropped = 0;
+        public static SpellSlot[] levelSpellsOrder;
+        public static ItemId[] shoppingList;
+        public static ItemId[] shoppingListConsumables;
+        public static ItemId shoppingListElixir;
+        public static SpellSlot summonerHeal;
+        public static SpellSlot summonerIgnite;
+        public static SpellSlot summonerFlash;
+        public static Vector3 lastDestination = Vector3.Zero;
+        public static List<Obj_AI_Hero> allies = new List<Obj_AI_Hero>();
+        public static List<Obj_AI_Hero> enemies = new List<Obj_AI_Hero>();
+        public static readonly List<ServerInteraction> SERVER_INTERACTIONS = new List<ServerInteraction>();
+        public static readonly Obj_AI_Hero MY_HERO = ObjectManager.Player;
+        public static readonly int SCAN_DISTANCE = 700;
+        public static readonly int BASE_PER_LVL_HP = 77;
+        public static readonly int BASE_LVL1_HP = 600;
+        public static readonly double AFRAID_UNDER_PERCENT = 0.5;
+        public static readonly double PANIC_UNDER_PERCENT = 0.25;
+        public static readonly int TICK_DELAY = 100;
+        public static readonly int WARD_PLACE_DISTANCE = 600;
+        public static readonly int SUMMONER_HEAL_RANGE = 700;
+        public static readonly int WARD_SIGHT_RADIUS = 1200;
 
-        public readonly Dictionary<GameObjectTeam, List<WardSpot>> wardSpots = new Dictionary
+        public static readonly Dictionary<GameObjectTeam, List<WardSpot>> WARD_SPOTS = new Dictionary
             <GameObjectTeam, List<WardSpot>>
         {
             {
