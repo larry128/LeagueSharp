@@ -25,7 +25,7 @@ namespace najsvan
         public static List<Obj_AI_Hero> enemies = new List<Obj_AI_Hero>();
         public static readonly List<ServerInteraction> SERVER_INTERACTIONS = new List<ServerInteraction>();
         public static readonly Obj_AI_Hero MY_HERO = ObjectManager.Player;
-        public static readonly int SCAN_DISTANCE = 700;
+        public static readonly int SCAN_DISTANCE = 1400;
         public static readonly int BASE_PER_LVL_HP = 77;
         public static readonly int BASE_LVL1_HP = 600;
         public static readonly double AFRAID_UNDER_PERCENT = 0.5;
@@ -33,6 +33,7 @@ namespace najsvan
         public static readonly int TICK_DELAY = 100;
         public static readonly int WARD_PLACE_DISTANCE = 600;
         public static readonly int SUMMONER_HEAL_RANGE = 700;
+        public static readonly int MIKAELS_RANGE = 750;
         public static readonly int WARD_SIGHT_RADIUS = 1200;
 
         public static readonly Dictionary<GameObjectTeam, List<WardSpot>> WARD_SPOTS = new Dictionary

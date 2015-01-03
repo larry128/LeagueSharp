@@ -80,10 +80,9 @@ namespace najsvan
                 }
             }
 
-            GenericContext.summonerHeal = GenericContext.MY_HERO.GetSpellSlot("summonerheal", true);
-            GenericContext.summonerFlash = GenericContext.MY_HERO.GetSpellSlot("summonerflash", true);
-            GenericContext.summonerIgnite = GenericContext.MY_HERO.GetSpellSlot("summonerdot", true);
-
+            GenericContext.summonerHeal = GenericContext.MY_HERO.GetSpellSlot("summonerheal");
+            GenericContext.summonerFlash = GenericContext.MY_HERO.GetSpellSlot("summonerflash");
+            GenericContext.summonerIgnite = GenericContext.MY_HERO.GetSpellSlot("summonerdot");
             GenericContext.enemies = ProcessEachGameObject<Obj_AI_Hero>(hero => !hero.IsAlly);
             GenericContext.allies = ProcessEachGameObject<Obj_AI_Hero>(hero => hero.IsAlly);
         }
@@ -254,7 +253,7 @@ namespace najsvan
 
             // if you fail to buy at any point you have a 10 seconds timeout
             if ((GenericContext.MY_HERO.InShop() || GenericContext.MY_HERO.IsDead) &&
-                GetSecondsSince(GenericContext.lastFailedBuy) > 10)
+                BotUtils.GetSecondsSince(GenericContext.lastFailedBuy) > 10)
             {
                 var nextToBuy = BotUtils.GetNextBuyItemId();
                 var elixir = ItemMapper.GetItem(GenericContext.shoppingListElixir);
@@ -312,7 +311,7 @@ namespace najsvan
                             }));
                     }
                 }
-                else if (GetMinutesSince(GenericContext.lastElixirBought) > 3 && elixir.HasValue &&
+                else if (BotUtils.GetMinutesSince(GenericContext.lastElixirBought) > 3 && elixir.HasValue &&
                          GenericContext.MY_HERO.GoldCurrent >= elixir.Value.Price)
                 {
                     GenericContext.SERVER_INTERACTIONS.Add(new ServerInteraction(new BuyItem(),
@@ -324,16 +323,6 @@ namespace najsvan
                     GenericContext.lastElixirBought = GenericContext.currentTick;
                 }
             }
-        }
-
-        private int GetSecondsSince(int actionTookPlaceAt)
-        {
-            return (GenericContext.currentTick - actionTookPlaceAt) / 1000;
-        }
-
-        private int GetMinutesSince(int actionTookPlaceAt)
-        {
-            return (GenericContext.currentTick - actionTookPlaceAt) / 1000 / 60;
         }
 
         public bool Condition_IsZombie(Node node, String stack)
@@ -360,7 +349,7 @@ namespace najsvan
                     wardSlot = BotUtils.GetWardSlot();
                 }
 
-                if ((wardSpell != null || wardSlot != null) && GetSecondsSince(GenericContext.lastWardDropped) > 4)
+                if ((wardSpell != null || wardSlot != null) && BotUtils.GetSecondsSince(GenericContext.lastWardDropped) > 4)
                 {
                     var keys = GenericContext.WARD_SPOTS.Keys;
                     foreach (var key in keys)
@@ -439,7 +428,17 @@ namespace najsvan
 
         public void Action_RecklessCastItems(Node node, String stack)
         {
-            // TODO: ...
+
+            var mikaelsSlot = BotUtils.GetItemSlot(ItemId.Mikaels_Crucible);
+            if (mikaelsSlot != null && mikaelsSlot.SpellSlot.IsReady())
+            {
+                var healTarget = TargetFinder.FindRecklessHelpAlly(GenericContext.MIKAELS_RANGE);
+                if (healTarget != null)
+                {
+                    var mikaelsSpell = new Spell(mikaelsSlot.SpellSlot);
+                    mikaelsSpell.CastOnUnit(healTarget);
+                }
+            }
         }
 
         public abstract void Action_RecklessCastSpells(Node node, String stack);
@@ -475,8 +474,8 @@ namespace najsvan
         public bool Condition_IsRegenerating(Node node, String stack)
         {
             if (GenericContext.MY_HERO.InFountain() &&
-                (GenericContext.MY_HERO.Health != GenericContext.MY_HERO.MaxHealth ||
-                 GenericContext.MY_HERO.Mana != GenericContext.MY_HERO.MaxMana))
+                (GenericContext.MY_HERO.Health < GenericContext.MY_HERO.MaxHealth ||
+                 GenericContext.MY_HERO.Mana < GenericContext.MY_HERO.MaxMana))
             {
                 return true;
             }

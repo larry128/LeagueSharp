@@ -7,6 +7,17 @@ namespace najsvan
 {
     public static class BotUtils
     {
+        public static int GetSecondsSince(int actionTookPlaceAt)
+        {
+            return (GenericContext.currentTick - actionTookPlaceAt) / 1000;
+        }
+
+        public static int GetMinutesSince(int actionTookPlaceAt)
+        {
+            return (GenericContext.currentTick - actionTookPlaceAt) / 1000 / 60;
+        }
+
+
         public static double GetTypicalHp(int level, double percent)
         {
             return (GenericContext.BASE_LVL1_HP + (level * GenericContext.BASE_PER_LVL_HP)) * percent;

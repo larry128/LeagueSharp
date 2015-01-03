@@ -43,6 +43,7 @@ namespace najsvan
 
         public override bool Condition_WillInterruptSelf(Node node, string stack)
         {
+            // karthus can't interrupt his skills
             return false;
         }
 

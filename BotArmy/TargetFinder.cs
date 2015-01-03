@@ -18,7 +18,7 @@ namespace najsvan
                     var adjustedAllyHealth = BotUtils.GetAdjustedAllyHealth(ally);
                     if (adjustedAllyHealth < lowestHp && adjustedAllyHealth > 1)
                     {
-                        var enemies = GetDangerousEnemiesInRange(ally, GenericContext.SCAN_DISTANCE);
+                        var enemies = GetDangerousEnemiesInRange(ally, GenericContext.SCAN_DISTANCE/2);
                         if ((enemies.Count > 0 || ally.UnderTurret(true)) &&
                             ally.Health < BotUtils.GetTypicalHp(ally.Level, GenericContext.PANIC_UNDER_PERCENT))
                         {
