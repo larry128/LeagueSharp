@@ -9,7 +9,7 @@ namespace najsvan
     {
         public static double GetTypicalHp(int level, double percent)
         {
-            return (GenericContext.BASE_LVL1_HP + (level*GenericContext.BASE_PER_LVL_HP))*percent;
+            return (GenericContext.BASE_LVL1_HP + (level * GenericContext.BASE_PER_LVL_HP)) * percent;
         }
 
         public static float GetHitboxDistance(float distance, GameObject obj)
@@ -48,7 +48,7 @@ namespace najsvan
                 // reduce expandedInventoryList
                 foreach (var itemId in GenericContext.shoppingList)
                 {
-                    if (!expandedInventory.Remove((int) itemId))
+                    if (!expandedInventory.Remove((int)itemId))
                     {
                         ItemMapper.GetItem(itemId);
                     }
@@ -143,7 +143,7 @@ namespace najsvan
 
         public static void ExpandRecipe(ItemId itemId, List<int> into)
         {
-            @into.Add((int) itemId);
+            @into.Add((int)itemId);
             var item = ItemMapper.GetItem(itemId);
             if (item != null && item.Value.RecipeItems != null && item.Value.RecipeItems.Length > 0)
             {
@@ -151,14 +151,14 @@ namespace najsvan
                 @into.AddRange(recipe);
                 foreach (var id in recipe)
                 {
-                    ExpandRecipe((ItemId) id, @into);
+                    ExpandRecipe((ItemId)id, @into);
                 }
             }
         }
 
         public static float GetAdjustedAllyHealth(Obj_AI_Hero ally)
         {
-            float[] result = {ally.Health};
+            float[] result = { ally.Health };
             GenericContext.SERVER_INTERACTIONS.ForEach(interaction =>
             {
                 var healed = interaction.change as AllyHealed;
@@ -178,15 +178,15 @@ namespace najsvan
 
         public static float GetAdjustedEnemyHealth(Obj_AI_Hero enemy)
         {
-            float[] result = {enemy.Health};
+            float[] result = { enemy.Health };
             GenericContext.SERVER_INTERACTIONS.ForEach(interaction =>
             {
                 var damaged = interaction.change as EnemyDamaged;
                 if (damaged != null)
                 {
-                    foreach (var damagedAlly in damaged.who)
+                    foreach (var damagedEnemy in damaged.who)
                     {
-                        if (damagedAlly.NetworkId == enemy.NetworkId)
+                        if (damagedEnemy.NetworkId == enemy.NetworkId)
                         {
                             result[0] -= damaged.amount;
                         }
@@ -197,9 +197,38 @@ namespace najsvan
             return result[0];
         }
 
+        public static bool GetAdjustedEnemyDisabled(Obj_AI_Hero enemy)
+        {
+            if (enemy.IsStunned)
+            {
+                return true;
+            }
+            else
+            {
+
+                bool[] result = { false };
+                GenericContext.SERVER_INTERACTIONS.ForEach(interaction =>
+                {
+                    var damaged = interaction.change as EnemyStunned;
+                    if (damaged != null)
+                    {
+                        foreach (var stunnedEnemy in damaged.who)
+                        {
+                            if (stunnedEnemy.NetworkId == enemy.NetworkId)
+                            {
+                                result[0] = true;
+                            }
+                        }
+                    }
+                });
+
+                return result[0];
+            }
+        }
+
         public static int GetSummonerHealAmount()
         {
-            return 75 + 15*GenericContext.MY_HERO.Level;
+            return 75 + 15 * GenericContext.MY_HERO.Level;
         }
     }
 }

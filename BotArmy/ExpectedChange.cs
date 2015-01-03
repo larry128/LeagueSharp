@@ -65,6 +65,14 @@ namespace najsvan
 
     public class EnemyStunned : ExpectedChange
     {
+        public readonly float amount;
+        public readonly Obj_AI_Hero[] who;
+
+        public EnemyStunned(Obj_AI_Hero[] who, float amount)
+        {
+            this.amount = amount;
+            this.who = who;
+        }
     }
 
     public class EnemySlowed : ExpectedChange
