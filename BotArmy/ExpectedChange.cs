@@ -11,7 +11,11 @@ namespace najsvan
         }
     }
 
-    public class WardCast : ExpectedChange
+    public class SpellLeveledUp : ExpectedChange
+    {
+    }
+
+    public class SpellCast : ExpectedChange
     {
     }
 
@@ -20,10 +24,6 @@ namespace najsvan
     }
 
     public class SellItem : ExpectedChange
-    {
-    }
-
-    public class SpellLeveledUp : ExpectedChange
     {
     }
 
@@ -49,49 +49,5 @@ namespace najsvan
         {
             this.wardSlot = wardSlot;
         }
-    }
-
-    public class EnemyDamaged : ExpectedChange
-    {
-        public readonly float amount;
-        public readonly Obj_AI_Hero[] who;
-
-        public EnemyDamaged(Obj_AI_Hero[] who, float amount)
-        {
-            this.amount = amount;
-            this.who = who;
-        }
-    }
-
-    public class EnemyStunned : ExpectedChange
-    {
-        public readonly float amount;
-        public readonly Obj_AI_Hero[] who;
-
-        public EnemyStunned(Obj_AI_Hero[] who, float amount)
-        {
-            this.amount = amount;
-            this.who = who;
-        }
-    }
-
-    public class EnemySlowed : ExpectedChange
-    {
-    }
-
-    public class AllyHealed : ExpectedChange
-    {
-        public readonly float amount;
-        public readonly Obj_AI_Hero[] who;
-
-        public AllyHealed(Obj_AI_Hero[] who, float amount)
-        {
-            this.amount = amount;
-            this.who = who;
-        }
-    }
-
-    public class AllyHastened : ExpectedChange
-    {
     }
 }

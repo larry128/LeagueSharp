@@ -15,20 +15,28 @@ namespace najsvan
             {
                 if (BotUtils.GetHitboxDistance(GenericContext.MY_HERO, ally) < range && !ally.InFountain())
                 {
-                    var adjustedAllyHealth = BotUtils.GetAdjustedAllyHealth(ally);
-                    if (adjustedAllyHealth < lowestHp && adjustedAllyHealth > 1)
+                    if (ally.Health < lowestHp && ally.Health > 1)
                     {
-                        var enemies = GetDangerousEnemiesInRange(ally, GenericContext.SCAN_DISTANCE/2);
+                        var enemies = GetDangerousEnemiesInRange(ally, GenericContext.SCAN_DISTANCE / 2);
                         if ((enemies.Count > 0 || ally.UnderTurret(true)) &&
-                            ally.Health < BotUtils.GetTypicalHp(ally.Level, GenericContext.PANIC_UNDER_PERCENT))
+                            ally.Health < BotUtils.GetTypicalHpPercent(ally.Level, GenericContext.PANIC_UNDER_PERCENT))
                         {
                             lowestHpAlly = ally;
-                            lowestHp = adjustedAllyHealth;
+                            lowestHp = ally.Health;
                         }
                     }
                 }
             });
             return lowestHpAlly;
+        }
+
+        public static bool IsAllyInPanic(Obj_AI_Hero ally)
+        {
+            var enemies = GetDangerousEnemiesInRange(ally, GenericContext.SCAN_DISTANCE / 2);
+            var panicHp = ally.Health < BotUtils.GetTypicalHpPercent(ally.Level, GenericContext.PANIC_UNDER_PERCENT);
+            var isAllyInPanic = (enemies.Count > 0 || ally.UnderTurret(true)) &&
+                                 panicHp;
+            return isAllyInPanic;
         }
 
         private static List<Obj_AI_Hero> GetDangerousEnemiesInRange(Obj_AI_Hero ally, int range)
@@ -38,7 +46,7 @@ namespace najsvan
             {
                 GenericContext.enemies.ForEach(enemy =>
                 {
-                    if (!enemy.IsDead && ally.Distance(enemy) < range && BotUtils.GetAdjustedEnemyHealth(enemy) > 0 &&
+                    if (!enemy.IsDead && ally.Distance(enemy) < range &&
                         !enemy.IsStunned)
                     {
                         result.Add(enemy);

@@ -52,6 +52,7 @@
   <ItemGroup>
     <Compile Include="BotUtils.cs" />
     <Compile Include="ExpectedChange.cs" />
+    <Compile Include="HeroInfo.cs" />
     <Compile Include="ItemMapper.cs" />
     <Compile Include="JSONBTree.cs" />
     <Compile Include="Assert.cs" />

@@ -368,7 +368,7 @@ namespace najsvan
                                         // will probably be more complicated than InRange...
                                         if (wardSpell != null && wardSpell.InRange(position.To3D()))
                                         {
-                                            GenericContext.SERVER_INTERACTIONS.Add(new ServerInteraction(new WardCast(),
+                                            GenericContext.SERVER_INTERACTIONS.Add(new ServerInteraction(new SpellCast(),
                                                 () => wardSpell.Cast(position)));
                                             return;
                                         }
@@ -420,7 +420,7 @@ namespace najsvan
                     {
                         healedTargets = new[] { healTarget, GenericContext.MY_HERO };
                     }
-                    GenericContext.SERVER_INTERACTIONS.Add(new ServerInteraction(new AllyHealed(healedTargets, BotUtils.GetSummonerHealAmount()),
+                    GenericContext.SERVER_INTERACTIONS.Add(new ServerInteraction(new SpellCast(),
                         () => { GenericContext.MY_HERO.Spellbook.CastSpell(GenericContext.summonerHeal, healTarget); }));
                 }
             }
@@ -447,7 +447,7 @@ namespace najsvan
 
         public bool Condition_IsInPanic(Node node, String stack)
         {
-            return false;
+            return TargetFinder.IsAllyInPanic(GenericContext.MY_HERO);
         }
 
         public void Action_PanicCounterMeasures(Node node, String stack)

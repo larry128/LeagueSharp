@@ -23,6 +23,7 @@ namespace najsvan
         public static Vector3 lastDestination = Vector3.Zero;
         public static List<Obj_AI_Hero> allies = new List<Obj_AI_Hero>();
         public static List<Obj_AI_Hero> enemies = new List<Obj_AI_Hero>();
+        public static Dictionary<int, HeroInfo> heroInfoDict = new Dictionary<int, HeroInfo>();
         public static readonly List<ServerInteraction> SERVER_INTERACTIONS = new List<ServerInteraction>();
         public static readonly Obj_AI_Hero MY_HERO = ObjectManager.Player;
         public static readonly int SCAN_DISTANCE = 1400;

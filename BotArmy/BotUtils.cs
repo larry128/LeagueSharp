@@ -18,7 +18,7 @@ namespace najsvan
         }
 
 
-        public static double GetTypicalHp(int level, double percent)
+        public static double GetTypicalHpPercent(int level, double percent)
         {
             return (GenericContext.BASE_LVL1_HP + (level * GenericContext.BASE_PER_LVL_HP)) * percent;
         }
@@ -164,76 +164,6 @@ namespace najsvan
                 {
                     ExpandRecipe((ItemId)id, @into);
                 }
-            }
-        }
-
-        public static float GetAdjustedAllyHealth(Obj_AI_Hero ally)
-        {
-            float[] result = { ally.Health };
-            GenericContext.SERVER_INTERACTIONS.ForEach(interaction =>
-            {
-                var healed = interaction.change as AllyHealed;
-                if (healed != null)
-                {
-                    foreach (var healedAlly in healed.who)
-                    {
-                        if (healedAlly.NetworkId == ally.NetworkId)
-                        {
-                            result[0] += healed.amount;
-                        }
-                    }
-                }
-            });
-            return result[0];
-        }
-
-        public static float GetAdjustedEnemyHealth(Obj_AI_Hero enemy)
-        {
-            float[] result = { enemy.Health };
-            GenericContext.SERVER_INTERACTIONS.ForEach(interaction =>
-            {
-                var damaged = interaction.change as EnemyDamaged;
-                if (damaged != null)
-                {
-                    foreach (var damagedEnemy in damaged.who)
-                    {
-                        if (damagedEnemy.NetworkId == enemy.NetworkId)
-                        {
-                            result[0] -= damaged.amount;
-                        }
-                    }
-                }
-            });
-
-            return result[0];
-        }
-
-        public static bool GetAdjustedEnemyDisabled(Obj_AI_Hero enemy)
-        {
-            if (enemy.IsStunned)
-            {
-                return true;
-            }
-            else
-            {
-
-                bool[] result = { false };
-                GenericContext.SERVER_INTERACTIONS.ForEach(interaction =>
-                {
-                    var damaged = interaction.change as EnemyStunned;
-                    if (damaged != null)
-                    {
-                        foreach (var stunnedEnemy in damaged.who)
-                        {
-                            if (stunnedEnemy.NetworkId == enemy.NetworkId)
-                            {
-                                result[0] = true;
-                            }
-                        }
-                    }
-                });
-
-                return result[0];
             }
         }
 
