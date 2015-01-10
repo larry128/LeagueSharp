@@ -1,5 +1,6 @@
 ﻿using LeagueSharp;
 using LeagueSharp.Common;
+using SharpDX;
 
 namespace najsvan
 {
@@ -36,9 +37,18 @@ namespace najsvan
         {
         }
 
-        protected override Spell GetWardSpell()
+        public override bool IsWardSpellReady()
         {
-            return null;
+            return false;
+        }
+
+        public override bool WardSpellIsInRange(Vector2 position)
+        {
+            return false;
+        }
+
+        public override void WardSpellCast(Vector2 position)
+        {
         }
 
         public override bool Condition_WillInterruptSelf(Node node, string stack)

@@ -51,6 +51,11 @@ namespace najsvan
             }
         }
 
+        public void Delete()
+        {
+            File.Delete(statsPath);
+        }
+
         private void Write()
         {
             if (writingEnabled)

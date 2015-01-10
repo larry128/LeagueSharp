@@ -49,6 +49,11 @@ namespace najsvan
             }
         }
 
+        public void Delete()
+        {
+            File.Delete(logPath);
+        }
+
         private void Log(String severity, String message)
         {
             File.AppendAllText(logPath,

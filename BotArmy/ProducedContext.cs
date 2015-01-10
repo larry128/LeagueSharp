@@ -1,43 +1,71 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using LeagueSharp;
 
 namespace najsvan
 {
-    public class ProducedContext
+    public static class ProducedContext
     {
-        public delegate Object Producer();
-
-        private static readonly Dictionary<ProducedContextKey, KeyValuePair<Producer, Object[]>> context =
-            new Dictionary<ProducedContextKey, KeyValuePair<Producer, Object[]>>();
-
-        public static Object Get(ProducedContextKey key)
-        {
-            KeyValuePair<Producer, Object[]> pair;
-            if (context.TryGetValue(key, out pair))
-            {
-                if (pair.Value[0] == null)
-                {
-                    pair.Value[0] = pair.Key();
-                }
-
-                return pair.Value[0];
-            }
-            Assert.Fail(false, "Don't know how to produce " + key);
-            return null;
-        }
+        public static readonly Produced<List<GameObject>> WARDS = new Produced<List<GameObject>>(Producer_Wards);
+        public static readonly Produced<bool> IS_MY_HERO_SAFE = new Produced<bool>(Producer_IsMyHeroSafe);
+        public static readonly Produced<List<Obj_AI_Hero>> ALL_ALLIES = new Produced<List<Obj_AI_Hero>>(Producer_AllAllies);
+        public static readonly Produced<List<Obj_AI_Hero>> ALL_ENEMIES = new Produced<List<Obj_AI_Hero>>(Producer_AllEnemies);
+        public static readonly Produced<List<Obj_AI_Turret>> ALLY_TURRETS = new Produced<List<Obj_AI_Turret>>(Producer_AllyTurrets);
+        public static readonly Produced<List<Obj_AI_Turret>> ENEMY_TURRETS = new Produced<List<Obj_AI_Turret>>(Producer_EnemyTurrets);
+        public static readonly Produced<Obj_SpawnPoint> ALLY_SPAWN = new Produced<Obj_SpawnPoint>(Producer_AllySpawn);
+        public static readonly Produced<Obj_SpawnPoint> ENEMY_SPAWN = new Produced<Obj_SpawnPoint>(Producer_EnemySpawn);
 
         public static void Clear()
         {
-            foreach (var value in context.Values)
+            var fields = typeof (ProducedContext).GetFields();
+            foreach (var field in fields)
             {
-                value.Value[0] = null;
+                var prod = field.GetRawConstantValue();
+                ((Clearable)prod).Clear();
             }
         }
 
-        public static void Set(ProducedContextKey key, Producer prod)
+        private static List<GameObject> Producer_Wards()
         {
-            Assert.False(context.ContainsKey(key), "Trying to set producer for key " + key + " multiple times");
-            context.Add(key, new KeyValuePair<Producer, Object[]>(prod, new Object[] {null}));
+            return
+                LibraryOfAlexandria.ProcessEachGameObject<GameObject>(
+                    obj => obj.IsValid && obj.IsVisible && obj.IsAlly && obj.Name.ToLower().Contains("ward"));
+        }
+
+        private static bool Producer_IsMyHeroSafe()
+        {
+            return LibraryOfAlexandria.IsAllySafe(GenericContext.MY_HERO);
+        }
+
+        private static List<Obj_AI_Hero> Producer_AllAllies()
+        {
+            return LibraryOfAlexandria.ProcessEachGameObject<Obj_AI_Hero>(hero => hero.IsAlly);
+        }
+
+        private static List<Obj_AI_Hero> Producer_AllEnemies()
+        {
+            return LibraryOfAlexandria.ProcessEachGameObject<Obj_AI_Hero>(hero => !hero.IsAlly);
+        }
+
+        private static List<Obj_AI_Turret> Producer_AllyTurrets()
+        {
+            return LibraryOfAlexandria.ProcessEachGameObject<Obj_AI_Turret>(turret => turret.IsAlly);
+        }
+
+        private static List<Obj_AI_Turret> Producer_EnemyTurrets()
+        {
+            return LibraryOfAlexandria.ProcessEachGameObject<Obj_AI_Turret>(turret => !turret.IsAlly);
+        }
+
+        private static Obj_SpawnPoint Producer_AllySpawn()
+        {
+            return LibraryOfAlexandria.ProcessEachGameObject<Obj_SpawnPoint>(spawn => spawn.IsAlly).First();
+        }
+
+        private static Obj_SpawnPoint Producer_EnemySpawn()
+        {
+            return LibraryOfAlexandria.ProcessEachGameObject<Obj_SpawnPoint>(spawn => !spawn.IsAlly).First();
         }
     }
 }

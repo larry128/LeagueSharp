@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing.Design;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using LeagueSharp;
@@ -14,7 +16,7 @@ namespace najsvan
         private readonly JSONBTree bTree;
         private readonly Menu config;
 
-        protected GenericBot()
+        public GenericBot()
         {
             try
             {
@@ -25,14 +27,12 @@ namespace najsvan
                 config = new Menu(botName, botName, true);
                 SetupMenu();
                 SetupContext();
-                SetupProducedContextCallbacks();
                 StartProcessing();
             }
             catch (Exception e)
             {
                 Game.PrintChat(e.GetType().Name + " : " + e.Message);
                 GetLogger().Error(e.ToString());
-
                 StopProcessing();
             }
         }
@@ -44,6 +44,8 @@ namespace najsvan
             Game.OnGameUpdate += Game_OnGameUpdate;
             Game.OnWndProc += Game_OnWndProc;
             Game.OnGameEnd += Game_OnGameEnd;
+            GameObject.OnCreate += GameObject_OnCreate;
+            GameObject.OnDelete += GameObject_OnDelete;
         }
 
         private void StopProcessing()
@@ -53,20 +55,40 @@ namespace najsvan
             Game.OnGameUpdate -= Game_OnGameUpdate;
             Game.OnWndProc -= Game_OnWndProc;
             Game.OnGameEnd -= Game_OnGameEnd;
+            GameObject.OnCreate -= GameObject_OnCreate;
+            GameObject.OnDelete -= GameObject_OnDelete;
+        }
+
+        private void GameObject_OnDelete(GameObject sender, EventArgs args)
+        {
+            if (args.ToString().ToLower().Contains(GenericContext.TARGETED_BY_TOWER_OBJ_NAME))
+            {
+                GenericContext.GetHeroInfo(GenericContext.MY_HERO).SetFocusedByTower(LibraryOfAlexandria.GetNearestTower(GenericContext.MY_HERO, false));
+            }
+        }
+
+        private void GameObject_OnCreate(GameObject sender, EventArgs args)
+        {
+            if (args.ToString().ToLower().Contains(GenericContext.TARGETED_BY_TOWER_OBJ_NAME))
+            {
+                GenericContext.GetHeroInfo(GenericContext.MY_HERO).SetFocusedByTower(null);
+            }
         }
 
         private void Drawing_OnDraw(EventArgs args)
         {
-            if (GenericContext.GetHeroInfo(GenericContext.MY_HERO).facing.IsValid())
+            if (GenericContext.GetHeroInfo(GenericContext.MY_HERO).GetFacing().IsValid())
             {
                 var start = Drawing.WorldToScreen(GenericContext.MY_HERO.Position);
-                var end = Drawing.WorldToScreen(GenericContext.GetHeroInfo(GenericContext.MY_HERO).facing);
+                var end = Drawing.WorldToScreen(GenericContext.GetHeroInfo(GenericContext.MY_HERO).GetFacing());
+                const int textOffsetX = 50;
+                const int textOffsetY = 70;
                 Drawing.DrawLine(start, end, 2, Color.Blue);
 
-                Drawing.DrawText(20, 20, Color.ForestGreen,
+                Drawing.DrawText(textOffsetX, textOffsetY, Color.LawnGreen,
                     GenericContext.MY_HERO.Position.X + "x" + GenericContext.MY_HERO.Position.Y + ", " +
-                    GenericContext.GetHeroInfo(GenericContext.MY_HERO).facing.X + "x" +
-                    GenericContext.GetHeroInfo(GenericContext.MY_HERO).facing.Y);
+                    GenericContext.GetHeroInfo(GenericContext.MY_HERO).GetFacing().X + "x" +
+                    GenericContext.GetHeroInfo(GenericContext.MY_HERO).GetFacing().Y);
             }
         }
 
@@ -77,40 +99,22 @@ namespace najsvan
             {
                 if (args.Target.IsValid && args.Target.Position.IsValid())
                 {
-                    GenericContext.GetHeroInfo(GenericContext.MY_HERO).facing = args.Target.Position;
+                    GenericContext.GetHeroInfo(GenericContext.MY_HERO).SetFacing(args.Target.Position);
                 }
             }
-        }
 
-        private void SetupProducedContextCallbacks()
-        {
-            ProducedContext.Set(ProducedContextKey.Wards, Producer_Wards);
+            if (unit.IsValid<Obj_AI_Turret>() && args.Target.IsValid<Obj_AI_Hero>())
+            {
+                GenericContext.GetHeroInfo((Obj_AI_Hero)args.Target).SetFocusedByTower((Obj_AI_Turret) unit);
+            }
         }
 
         private void SetupContext()
         {
-            foreach (var spawn in ObjectManager.Get<Obj_SpawnPoint>())
-            {
-                Assert.True(spawn.IsValid<Obj_SpawnPoint>(), "invalid Obj_SpawnPoint");
-                if (spawn.IsAlly)
-                {
-                    GenericContext.allySpawn = spawn;
-                }
-                else
-                {
-                    GenericContext.enemySpawn = spawn;
-                }
-            }
-
             GenericContext.summonerHeal = GenericContext.MY_HERO.GetSpellSlot("summonerheal");
             GenericContext.summonerFlash = GenericContext.MY_HERO.GetSpellSlot("summonerflash");
             GenericContext.summonerIgnite = GenericContext.MY_HERO.GetSpellSlot("summonerdot");
-            GenericContext.enemies = ProcessEachGameObject<Obj_AI_Hero>(hero => !hero.IsAlly);
-            GenericContext.allies = ProcessEachGameObject<Obj_AI_Hero>(hero => hero.IsAlly);
-            GenericContext.allies.ForEach(
-                ally => { GenericContext.heroInfoDict.Add(ally.NetworkId, new HeroInfo(ally)); });
-            GenericContext.enemies.ForEach(
-                enemy => { GenericContext.heroInfoDict.Add(enemy.NetworkId, new HeroInfo(enemy)); });
+
         }
 
         private void SetupMenu()
@@ -142,6 +146,11 @@ namespace najsvan
         private void ConfigBotDebug_ValueChanged(Object obj, OnValueChangeEventArgs args)
         {
             var newValue = args.GetNewValue<bool>();
+            if (!newValue)
+            {
+                GetLogger().Delete();
+            }
+
             GetLogger().debugEnabled = newValue;
             args.Process = true;
         }
@@ -149,6 +158,10 @@ namespace najsvan
         private void ConfigJsonBTreeDebug_ValueChanged(Object obj, OnValueChangeEventArgs args)
         {
             var newValue = args.GetNewValue<bool>();
+            if (!newValue)
+            {
+                GetLogger().Delete();
+            }
             Logger.GetLogger(bTree.GetType().Name).debugEnabled = newValue;
             args.Process = true;
         }
@@ -156,7 +169,12 @@ namespace najsvan
         private void ConfigJsonBTreeStats_ValueChanged(Object obj, OnValueChangeEventArgs args)
         {
             var newValue = args.GetNewValue<bool>();
-            Statistics.GetStatistics(bTree.GetType().Name).writingEnabled = newValue;
+            var jsonBTreeStats = Statistics.GetStatistics(bTree.GetType().Name);
+            if (!newValue)
+            {
+                jsonBTreeStats.Delete();
+            }
+            jsonBTreeStats.writingEnabled = newValue;
             args.Process = true;
         }
 
@@ -166,7 +184,7 @@ namespace najsvan
             {
                 if (args.WParam == 0x75) // F6 - test shit
                 {
-                    var nextToBuy = BotUtils.GetNextBuyItemId();
+                    var nextToBuy = LibraryOfAlexandria.GetNextBuyItemId();
                     Game.PrintChat("nextToBuy: " + ((ItemId)nextToBuy.Value.Id));
                 }
             }
@@ -265,15 +283,24 @@ namespace najsvan
 
         public void Action_DoFirst(Node node, String stack)
         {
-            // update hero tracking shit
+            // update hero info
             foreach (var heroInfo in GenericContext.heroInfoDict.Values)
             {
                 heroInfo.UpdateHpHistory();
+                if (heroInfo.IsFocusedByTower()) { 
+                    var turret = heroInfo.GetFocusedByTower();
+                    var realHero = heroInfo.GetRealHero();
+                    if (realHero.Distance(turret) > GenericContext.TURRET_RANGE ||
+                        turret.IsDead)
+                    {
+                        heroInfo.SetFocusedByTower(null);
+                    }
+                }
             }
             if (GenericContext.MY_HERO.ServerPosition.IsValid() &&
                 !GenericContext.MY_HERO.ServerPosition.Equals(GenericContext.MY_HERO.Position))
             {
-                GenericContext.GetHeroInfo(GenericContext.MY_HERO).facing = GenericContext.MY_HERO.ServerPosition;
+                GenericContext.GetHeroInfo(GenericContext.MY_HERO).SetFacing(GenericContext.MY_HERO.ServerPosition);
             }
 
             bTree.OnlyOncePer(500);
@@ -295,9 +322,9 @@ namespace najsvan
             // buying
             // if you fail to buy at any point you have a 10 seconds timeout
             if ((GenericContext.MY_HERO.InShop() || GenericContext.MY_HERO.IsDead) &&
-                BotUtils.GetSecondsSince(GenericContext.lastFailedBuy) > 10)
+                LibraryOfAlexandria.GetSecondsSince(GenericContext.lastFailedBuy) > 10)
             {
-                var nextToBuy = BotUtils.GetNextBuyItemId();
+                var nextToBuy = LibraryOfAlexandria.GetNextBuyItemId();
                 var elixir = ItemMapper.GetItem((int)GenericContext.shoppingListElixir);
                 // handle initial consumables first
                 if (GenericContext.shoppingListConsumables.Length > 0 && GenericContext.MY_HERO.Level == 1)
@@ -320,11 +347,11 @@ namespace najsvan
                 }
                 else if (nextToBuy.HasValue && GenericContext.MY_HERO.GoldCurrent >= nextToBuy.Value.Price)
                 {
-                    if (BotUtils.GetOccuppiedInventorySlots().Count == 7)
+                    if (LibraryOfAlexandria.GetOccuppiedInventorySlots().Count == 7)
                     {
-                        var wardSlot = BotUtils.GetItemSlot(ItemId.Stealth_Ward);
-                        var manaPotSlot = BotUtils.GetItemSlot(ItemId.Mana_Potion);
-                        var healthPotSlot = BotUtils.GetItemSlot(ItemId.Health_Potion);
+                        var wardSlot = LibraryOfAlexandria.GetItemSlot(ItemId.Stealth_Ward);
+                        var manaPotSlot = LibraryOfAlexandria.GetItemSlot(ItemId.Mana_Potion);
+                        var healthPotSlot = LibraryOfAlexandria.GetItemSlot(ItemId.Health_Potion);
                         if (wardSlot != null)
                         {
                             GenericContext.SERVER_INTERACTIONS.Add(new ServerInteraction(new SellItem(),
@@ -353,7 +380,7 @@ namespace najsvan
                             }));
                     }
                 }
-                else if (BotUtils.GetMinutesSince(GenericContext.lastElixirBought) > 3 && elixir.HasValue &&
+                else if (LibraryOfAlexandria.GetMinutesSince(GenericContext.lastElixirBought) > 3 && elixir.HasValue &&
                          GenericContext.MY_HERO.GoldCurrent >= elixir.Value.Price)
                 {
                     GenericContext.SERVER_INTERACTIONS.Add(new ServerInteraction(new BuyItem(),
@@ -383,10 +410,10 @@ namespace najsvan
         {
             if (GenericContext.MY_HERO.Level > 1)
             {
-                InventorySlot wardSlot = BotUtils.GetWardSlot();
+                InventorySlot wardSlot = LibraryOfAlexandria.GetWardSlot();
 
                 if ((IsWardSpellReady() || wardSlot != null) &&
-                    BotUtils.GetSecondsSince(GenericContext.lastWardDropped) > 4)
+                    LibraryOfAlexandria.GetSecondsSince(GenericContext.lastWardDropped) > 4)
                 {
                     var keys = GenericContext.WARD_SPOTS.Keys;
                     foreach (var key in keys)
@@ -399,7 +426,7 @@ namespace najsvan
                                 foreach (var wardSpot in values)
                                 {
                                     var position = wardSpot.GetPosition();
-                                    var isAWardNear = BotUtils.IsAWardNear(position);
+                                    var isAWardNear = LibraryOfAlexandria.IsAWardNear(position);
                                     if (!isAWardNear)
                                     {
                                         if (IsWardSpellReady() && WardSpellIsInRange(position))
@@ -409,7 +436,7 @@ namespace najsvan
                                         else if (wardSlot != null)
                                         {
                                             var wardSlotSpell = new Spell(wardSlot.SpellSlot,
-                                                BotUtils.GetHitboxDistance(GenericContext.WARD_PLACE_DISTANCE,
+                                                LibraryOfAlexandria.GetHitboxDistance(GenericContext.WARD_PLACE_DISTANCE,
                                                     GenericContext.MY_HERO));
                                             if (wardSlotSpell.IsInRange(position.To3D()))
                                             {
@@ -427,11 +454,11 @@ namespace najsvan
             }
         }
 
-        protected abstract bool IsWardSpellReady();
+        public abstract bool IsWardSpellReady();
 
-        protected abstract bool WardSpellIsInRange(Vector2 position);
+        public abstract bool WardSpellIsInRange(Vector2 position);
 
-        protected abstract void WardSpellCast(Vector2 position);
+        public abstract void WardSpellCast(Vector2 position);
 
         public abstract bool Condition_WillInterruptSelf(Node node, String stack);
 
@@ -446,7 +473,7 @@ namespace najsvan
         {
             if (GenericContext.summonerHeal.IsReady())
             {
-                var healTarget = HeroTracker.FindAllyInDanger(GenericContext.SUMMONER_HEAL_RANGE);
+                var healTarget = LibraryOfAlexandria.FindAllyInDanger(GenericContext.SUMMONER_HEAL_RANGE);
                 if (healTarget != null)
                 {
                     GenericContext.SERVER_INTERACTIONS.Add(new ServerInteraction(new SpellCast(),
@@ -455,10 +482,10 @@ namespace najsvan
                 }
             }
 
-            var mikaelsSlot = BotUtils.GetItemSlot(ItemId.Mikaels_Crucible);
+            var mikaelsSlot = LibraryOfAlexandria.GetItemSlot(ItemId.Mikaels_Crucible);
             if (mikaelsSlot != null && mikaelsSlot.SpellSlot.IsReady())
             {
-                var mikaelsTarget = HeroTracker.FindAllyInDanger(GenericContext.MIKAELS_RANGE);
+                var mikaelsTarget = LibraryOfAlexandria.FindAllyInDanger(GenericContext.MIKAELS_RANGE);
                 if (mikaelsTarget != null)
                 {
                     var mikaelsSpell = new Spell(mikaelsSlot.SpellSlot);
@@ -474,36 +501,23 @@ namespace najsvan
 
         public bool Condition_DangerCooldown(Node node, String stack)
         {
-            return BotUtils.GetSecondsSince(GenericContext.lastDanger) < 3;
+            return LibraryOfAlexandria.GetSecondsSince(GenericContext.lastDanger) < 3;
         }
 
         public bool Condition_IsInDanger(Node node, String stack)
         {
-            return HeroTracker.IsAllyInDanger(GenericContext.MY_HERO);
+            return LibraryOfAlexandria.IsAllyInDanger(GenericContext.MY_HERO);
         }
 
         public void Action_DoIfInDanger(Node node, String stack)
         {
-            if (GenericContext.summonerHeal.IsReady())
+            if (GenericContext.summonerFlash.IsReady())
             {
-                var healTarget = HeroTracker.FindAllyInDanger(GenericContext.SUMMONER_HEAL_RANGE);
-                if (healTarget != null)
+                var safeFlashPosition = LibraryOfAlexandria.GetNearestSafeFlashPosition();
+                if (safeFlashPosition.HasValue)
                 {
                     GenericContext.SERVER_INTERACTIONS.Add(new ServerInteraction(new SpellCast(),
-                        () => { GenericContext.MY_HERO.Spellbook.CastSpell(GenericContext.summonerHeal, healTarget); }));
-                    return;
-                }
-            }
-
-            var mikaelsSlot = BotUtils.GetItemSlot(ItemId.Mikaels_Crucible);
-            if (mikaelsSlot != null && mikaelsSlot.SpellSlot.IsReady())
-            {
-                var mikaelsTarget = HeroTracker.FindAllyInDanger(GenericContext.MIKAELS_RANGE);
-                if (mikaelsTarget != null)
-                {
-                    var mikaelsSpell = new Spell(mikaelsSlot.SpellSlot);
-                    GenericContext.SERVER_INTERACTIONS.Add(new ServerInteraction(new SpellCast(),
-                        () => { mikaelsSpell.CastOnUnit(mikaelsTarget); }));
+                        () => { GenericContext.MY_HERO.Spellbook.CastSpell(GenericContext.summonerFlash, safeFlashPosition.Value); }));
                     return;
                 }
             }
@@ -511,13 +525,14 @@ namespace najsvan
 
         public abstract void Action_DoIfNotInDanger(Node node, String stack);
 
-        public bool Condition_IsSafe(Node node, String stack)
+        public bool Condition_IsUnsafe(Node node, String stack)
         {
-            return true;
+            return !ProducedContext.IS_MY_HERO_SAFE.Get();
         }
 
         public void Action_MoveToSafety(Node node, String stack)
         {
+            LibraryOfAlexandria.SafeMoveToDestination(ProducedContext.ALLY_SPAWN.Get().Position);
         }
 
         public void Action_AutoAttack(Node node, String stack)
@@ -528,19 +543,15 @@ namespace najsvan
 
         public bool Condition_IsRegenerating(Node node, String stack)
         {
-            if (GenericContext.MY_HERO.InFountain() &&
-                (GenericContext.MY_HERO.Health < GenericContext.MY_HERO.MaxHealth ||
-                 GenericContext.MY_HERO.Mana < GenericContext.MY_HERO.MaxMana))
-            {
-                return true;
-            }
-            return false;
+            return GenericContext.MY_HERO.InFountain() &&
+                   (GenericContext.MY_HERO.Health < GenericContext.MY_HERO.MaxHealth ||
+                    GenericContext.MY_HERO.Mana < GenericContext.MY_HERO.MaxMana);
         }
 
         public bool Condition_IsBuying(Node node, String stack)
         {
-            var nextToBuy = BotUtils.GetNextBuyItemId();
-            return nextToBuy.HasValue && GenericContext.MY_HERO.GoldCurrent >= nextToBuy.Value.Price &&
+            var nextToBuy = LibraryOfAlexandria.GetNextBuyItemId();
+            return GenericContext.MY_HERO.InShop() && nextToBuy.HasValue && GenericContext.MY_HERO.GoldCurrent >= nextToBuy.Value.Price &&
                    !GenericContext.MY_HERO.IsDead;
         }
 
@@ -560,45 +571,22 @@ namespace najsvan
 
         public bool Action_MoveToWard(Node node, String stack)
         {
-            SafeMoveToDestination(GenericContext.enemySpawn.Position);
+            LibraryOfAlexandria.SafeMoveToDestination(ProducedContext.ENEMY_SPAWN.Get().Position);
             return true;
+        }
+
+        public void Action_MoveToSpawn(Node node, String stack)
+        {
+            LibraryOfAlexandria.SafeMoveToDestination(ProducedContext.ALLY_SPAWN.Get().Position);
+        }
+
+        public bool Condition_IsOnSpawn(Node node, String stack)
+        {
+            return GenericContext.MY_HERO.Distance(ProducedContext.ALLY_SPAWN.Get()) < GenericContext.MY_HERO.BoundingRadius;
         }
 
         public abstract void Action_Move(Node node, String stack);
 
-        protected void SafeMoveToDestination(Vector3 destination)
-        {
-            if (destination.IsValid() &&
-                (!GenericContext.MY_HERO.IsMoving ||
-                 destination.Distance(GenericContext.lastDestination) > GenericContext.MY_HERO.BoundingRadius))
-            {
-                GenericContext.SERVER_INTERACTIONS.Add(new ServerInteraction(new MovingTo(destination),
-                    () => { GenericContext.MY_HERO.IssueOrder(GameObjectOrder.MoveTo, destination); }));
-            }
-        }
-
-        protected List<T> ProcessEachGameObject<T>(Condition<T> cond) where T : GameObject, new()
-        {
-            var result = new List<T>();
-            foreach (var obj in ObjectManager.Get<T>())
-            {
-                if (obj != null && obj.IsValid && cond(obj))
-                {
-                    result.Add(obj);
-                }
-            }
-            return result;
-        }
-
-        private List<GameObject> Producer_Wards()
-        {
-            return
-                ProcessEachGameObject<GameObject>(
-                    obj => obj.IsValid && obj.IsVisible && obj.IsAlly && obj.Name.ToLower().Contains("ward"));
-        }
-
-        protected delegate bool Condition<in T>(T hero);
-
-        protected delegate void Action<in T>(T change);
+        public delegate void Action<in T>(T change);
     }
 }
