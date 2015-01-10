@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using LeagueSharp;
 using LeagueSharp.Common;
 using SharpDX;
@@ -42,6 +43,7 @@ namespace najsvan
             Obj_AI_Base.OnProcessSpellCast += Obj_AI_Base_OnProcessSpellCast;
             Game.OnGameUpdate += Game_OnGameUpdate;
             Game.OnWndProc += Game_OnWndProc;
+            Game.OnGameEnd += Game_OnGameEnd;
         }
 
         private void StopProcessing()
@@ -50,6 +52,7 @@ namespace najsvan
             Obj_AI_Base.OnProcessSpellCast -= Obj_AI_Base_OnProcessSpellCast;
             Game.OnGameUpdate -= Game_OnGameUpdate;
             Game.OnWndProc -= Game_OnWndProc;
+            Game.OnGameEnd -= Game_OnGameEnd;
         }
 
         private void Drawing_OnDraw(EventArgs args)
@@ -185,6 +188,17 @@ namespace najsvan
 
                 ProcessTick();
             }
+        }
+
+        private void Game_OnGameEnd(EventArgs args)
+        {
+            GetLogger().Info("OnGameEnd");
+            var oThread = new Thread(() =>
+            {
+                Thread.Sleep(30000);
+                Environment.Exit(0);
+            });
+            oThread.Start();
         }
 
         [MethodImpl(MethodImplOptions.Synchronized)]
@@ -369,15 +383,9 @@ namespace najsvan
         {
             if (GenericContext.MY_HERO.Level > 1)
             {
-                // use wardSpell rather than wardSlot
-                var wardSpell = GetWardSpell();
-                InventorySlot wardSlot = null;
-                if (wardSpell == null)
-                {
-                    wardSlot = BotUtils.GetWardSlot();
-                }
+                InventorySlot wardSlot = BotUtils.GetWardSlot();
 
-                if ((wardSpell != null || wardSlot != null) &&
+                if ((IsWardSpellReady() || wardSlot != null) &&
                     BotUtils.GetSecondsSince(GenericContext.lastWardDropped) > 4)
                 {
                     var keys = GenericContext.WARD_SPOTS.Keys;
@@ -394,16 +402,11 @@ namespace najsvan
                                     var isAWardNear = BotUtils.IsAWardNear(position);
                                     if (!isAWardNear)
                                     {
-                                        // will probably be more complicated than InRange...
-                                        if (wardSpell != null && wardSpell.IsInRange(position.To3D()))
+                                        if (IsWardSpellReady() && WardSpellIsInRange(position))
                                         {
-                                            GenericContext.SERVER_INTERACTIONS.Add(new ServerInteraction(
-                                                new SpellCast(),
-                                                () => wardSpell.Cast(position)));
-                                            return;
+                                            WardSpellCast(position);
                                         }
-
-                                        if (wardSlot != null)
+                                        else if (wardSlot != null)
                                         {
                                             var wardSlotSpell = new Spell(wardSlot.SpellSlot,
                                                 BotUtils.GetHitboxDistance(GenericContext.WARD_PLACE_DISTANCE,
@@ -424,7 +427,12 @@ namespace najsvan
             }
         }
 
-        protected abstract Spell GetWardSpell();
+        protected abstract bool IsWardSpellReady();
+
+        protected abstract bool WardSpellIsInRange(Vector2 position);
+
+        protected abstract void WardSpellCast(Vector2 position);
+
         public abstract bool Condition_WillInterruptSelf(Node node, String stack);
 
         public bool Condition_IsRecalling(Node node, String stack)
@@ -438,22 +446,25 @@ namespace najsvan
         {
             if (GenericContext.summonerHeal.IsReady())
             {
-                var healTarget = TargetFinder.FindRecklessHelpAlly(GenericContext.SUMMONER_HEAL_RANGE);
+                var healTarget = HeroTracker.FindAllyInDanger(GenericContext.SUMMONER_HEAL_RANGE);
                 if (healTarget != null)
                 {
                     GenericContext.SERVER_INTERACTIONS.Add(new ServerInteraction(new SpellCast(),
                         () => { GenericContext.MY_HERO.Spellbook.CastSpell(GenericContext.summonerHeal, healTarget); }));
+                    return;
                 }
             }
 
             var mikaelsSlot = BotUtils.GetItemSlot(ItemId.Mikaels_Crucible);
             if (mikaelsSlot != null && mikaelsSlot.SpellSlot.IsReady())
             {
-                var healTarget = TargetFinder.FindRecklessHelpAlly(GenericContext.MIKAELS_RANGE);
-                if (healTarget != null)
+                var mikaelsTarget = HeroTracker.FindAllyInDanger(GenericContext.MIKAELS_RANGE);
+                if (mikaelsTarget != null)
                 {
                     var mikaelsSpell = new Spell(mikaelsSlot.SpellSlot);
-                    mikaelsSpell.CastOnUnit(healTarget);
+                    GenericContext.SERVER_INTERACTIONS.Add(new ServerInteraction(new SpellCast(),
+                        () => { mikaelsSpell.CastOnUnit(mikaelsTarget); }));
+                    return;
                 }
             }
         }
@@ -463,16 +474,39 @@ namespace najsvan
 
         public bool Condition_DangerCooldown(Node node, String stack)
         {
-            return false;
+            return BotUtils.GetSecondsSince(GenericContext.lastDanger) < 3;
         }
 
         public bool Condition_IsInDanger(Node node, String stack)
         {
-            return TargetFinder.IsAllyInDanger(GenericContext.MY_HERO);
+            return HeroTracker.IsAllyInDanger(GenericContext.MY_HERO);
         }
 
         public void Action_DoIfInDanger(Node node, String stack)
         {
+            if (GenericContext.summonerHeal.IsReady())
+            {
+                var healTarget = HeroTracker.FindAllyInDanger(GenericContext.SUMMONER_HEAL_RANGE);
+                if (healTarget != null)
+                {
+                    GenericContext.SERVER_INTERACTIONS.Add(new ServerInteraction(new SpellCast(),
+                        () => { GenericContext.MY_HERO.Spellbook.CastSpell(GenericContext.summonerHeal, healTarget); }));
+                    return;
+                }
+            }
+
+            var mikaelsSlot = BotUtils.GetItemSlot(ItemId.Mikaels_Crucible);
+            if (mikaelsSlot != null && mikaelsSlot.SpellSlot.IsReady())
+            {
+                var mikaelsTarget = HeroTracker.FindAllyInDanger(GenericContext.MIKAELS_RANGE);
+                if (mikaelsTarget != null)
+                {
+                    var mikaelsSpell = new Spell(mikaelsSlot.SpellSlot);
+                    GenericContext.SERVER_INTERACTIONS.Add(new ServerInteraction(new SpellCast(),
+                        () => { mikaelsSpell.CastOnUnit(mikaelsTarget); }));
+                    return;
+                }
+            }
         }
 
         public abstract void Action_DoIfNotInDanger(Node node, String stack);

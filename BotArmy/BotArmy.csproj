@@ -68,7 +68,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="KarthusBot.cs" />
-    <Compile Include="TargetFinder.cs" />
+    <Compile Include="HeroTracker.cs" />
     <Compile Include="TooFastException.cs" />
     <Compile Include="WardSpot.cs" />
   </ItemGroup>

@@ -13,6 +13,7 @@ namespace najsvan
         public static int lastFailedBuy = 0;
         public static int lastTickProcessed = 0;
         public static int lastWardDropped = 0;
+        public static int lastDanger = 0;
         public static SpellSlot[] levelSpellsOrder;
         public static ItemId[] shoppingList;
         public static ItemId[] shoppingListConsumables;

@@ -4,9 +4,9 @@ using LeagueSharp.Common;
 
 namespace najsvan
 {
-    public static class TargetFinder
+    public static class HeroTracker
     {
-        public static Obj_AI_Hero FindRecklessHelpAlly(float range)
+        public static Obj_AI_Hero FindAllyInDanger(float range)
         {
             Obj_AI_Hero lowestHpAlly = null;
             var lowestHp = float.MaxValue;
