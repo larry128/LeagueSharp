@@ -18,7 +18,7 @@ namespace najsvan
         }
 
 
-        public static double GetTypicalHpPercent(int level, double percent)
+        public static double GetTypicalHp(int level, double percent)
         {
             return (GenericContext.BASE_LVL1_HP + (level * GenericContext.BASE_PER_LVL_HP)) * percent;
         }
@@ -28,9 +28,9 @@ namespace najsvan
             return distance + obj.BoundingRadius + 40;
         }
 
-        public static float GetHitboxDistance(GameObject obj, GameObject obj2)
+        public static float GetHitboxDistance(Obj_AI_Base obj, Obj_AI_Base obj2)
         {
-            return obj.Position.Distance(obj2.Position) + obj.BoundingRadius + obj2.BoundingRadius - 8;
+            return obj.ServerPosition.Distance(obj2.ServerPosition) + obj.BoundingRadius + obj2.BoundingRadius - 8;
         }
 
         public static InventorySlot GetItemSlot(ItemId itemId)
@@ -53,7 +53,7 @@ namespace najsvan
                 var expandedInventory = new List<int>();
                 foreach (var inventorySlot in GetOccuppiedInventorySlots())
                 {
-                    ExpandRecipe(inventorySlot.Id, expandedInventory);
+                    ExpandRecipe((int)inventorySlot.Id, expandedInventory);
                 }
 
                 // reduce expandedInventoryList
@@ -61,7 +61,7 @@ namespace najsvan
                 {
                     if (!expandedInventory.Remove((int)itemId))
                     {
-                        ItemMapper.GetItem(itemId);
+                        return ItemMapper.GetItem((int)itemId);
                     }
                 }
             }
@@ -152,17 +152,17 @@ namespace najsvan
             return result;
         }
 
-        public static void ExpandRecipe(ItemId itemId, List<int> into)
+        public static void ExpandRecipe(int itemId, List<int> into)
         {
-            @into.Add((int)itemId);
+            @into.Add(itemId);
             var item = ItemMapper.GetItem(itemId);
-            if (item != null && item.Value.RecipeItems != null && item.Value.RecipeItems.Length > 0)
+            if (item.HasValue && item.Value.RecipeItems != null && item.Value.RecipeItems.Length > 0)
             {
                 var recipe = item.Value.RecipeItems;
                 @into.AddRange(recipe);
                 foreach (var id in recipe)
                 {
-                    ExpandRecipe((ItemId)id, @into);
+                    ExpandRecipe(id, @into);
                 }
             }
         }

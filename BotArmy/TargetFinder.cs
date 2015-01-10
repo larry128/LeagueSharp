@@ -4,7 +4,7 @@ using LeagueSharp.Common;
 
 namespace najsvan
 {
-    public class TargetFinder
+    public static class TargetFinder
     {
         public static Obj_AI_Hero FindRecklessHelpAlly(float range)
         {
@@ -13,30 +13,37 @@ namespace najsvan
 
             GenericContext.allies.ForEach(ally =>
             {
-                if (BotUtils.GetHitboxDistance(GenericContext.MY_HERO, ally) < range && !ally.InFountain())
+                if (BotUtils.GetHitboxDistance(GenericContext.MY_HERO, ally) < range && !ally.InFountain() && !ally.IsDead)
                 {
-                    if (ally.Health < lowestHp && ally.Health > 1)
+                    if (ally.Health < lowestHp && ally.Health > 1 && IsAllyInDanger(ally))
                     {
-                        var enemies = GetDangerousEnemiesInRange(ally, GenericContext.SCAN_DISTANCE / 2);
-                        if ((enemies.Count > 0 || ally.UnderTurret(true)) &&
-                            ally.Health < BotUtils.GetTypicalHpPercent(ally.Level, GenericContext.PANIC_UNDER_PERCENT))
-                        {
-                            lowestHpAlly = ally;
-                            lowestHp = ally.Health;
-                        }
+                        lowestHpAlly = ally;
+                        lowestHp = ally.Health;
                     }
                 }
             });
             return lowestHpAlly;
         }
 
-        public static bool IsAllyInPanic(Obj_AI_Hero ally)
+        public static bool IsAllyInDanger(Obj_AI_Hero ally)
         {
             var enemies = GetDangerousEnemiesInRange(ally, GenericContext.SCAN_DISTANCE / 2);
-            var panicHp = ally.Health < BotUtils.GetTypicalHpPercent(ally.Level, GenericContext.PANIC_UNDER_PERCENT);
-            var isAllyInPanic = (enemies.Count > 0 || ally.UnderTurret(true)) &&
-                                 panicHp;
-            return isAllyInPanic;
+            var panicHp = ally.Health < BotUtils.GetTypicalHp(ally.Level, GenericContext.PANIC_UNDER_PERCENT);
+            var afraidHp = ally.Health < BotUtils.GetTypicalHp(ally.Level, GenericContext.AFRAID_UNDER_PERCENT);
+            var allyInfo = GenericContext.GetHeroInfo(ally);
+
+            return !ally.IsDead && !ally.InFountain() && 
+                (
+                (
+                    panicHp && 
+                    (enemies.Count > 0 || ally.UnderTurret(true))
+                )
+                ||
+                (
+                    afraidHp && 
+                    (allyInfo.GetHpLost() > 0.3 * ally.MaxHealth)
+                )
+                );
         }
 
         private static List<Obj_AI_Hero> GetDangerousEnemiesInRange(Obj_AI_Hero ally, int range)

@@ -6,22 +6,22 @@ namespace najsvan
 {
     public class ItemMapper
     {
-        private static Dictionary<ItemId, ItemData.Item> ITEM_MAP;
+        private static Dictionary<int, ItemData.Item> ITEM_MAP;
 
-        public static ItemData.Item? GetItem(ItemId id)
+        public static ItemData.Item? GetItem(int id)
         {
             if (ITEM_MAP == null)
             {
-                ITEM_MAP = new Dictionary<ItemId, ItemData.Item>();
+                ITEM_MAP = new Dictionary<int, ItemData.Item>();
+                var data = new ItemData();
                 var fields = typeof (ItemData).GetFields();
                 foreach (var field in fields)
                 {
-                    var item = (ItemData.Item) field.GetRawConstantValue();
-                    var itemId = (ItemId) item.Id;
+                    var item = (ItemData.Item)field.GetValue(data);
+                    var itemId = item.Id;
                     ITEM_MAP.Add(itemId, item);
                 }
             }
-
             ItemData.Item result;
             if (ITEM_MAP.TryGetValue(id, out result))
             {

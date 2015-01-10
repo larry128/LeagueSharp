@@ -181,7 +181,7 @@ namespace najsvan
                 }
                 else
                 {
-                    throw inner;
+                    throw e;
                 }
             }
             return true;

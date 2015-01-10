@@ -43,25 +43,28 @@ namespace najsvan
 
         public override bool Condition_WillInterruptSelf(Node node, string stack)
         {
-            // karthus can't interrupt his skills
             return false;
         }
 
-        public override void Action_CastSafeSpells(Node node, string stack)
+        public override void Action_DoRecklesslyButDontInterruptSelf(Node node, string stack)
         {
         }
 
-        public override void Action_RecklessCastSpells(Node node, string stack)
-        {
-        }
-
-        public override void Action_RecklessAutoAttack(Node node, string stack)
+        public override void Action_DoRecklessly(Node node, string stack)
         {
         }
 
         public override bool Action_RecklessMove(Node node, string stack)
         {
             return false;
+        }
+
+        public override void Action_DoIfNotInDanger(Node node, string stack)
+        {
+        }
+
+        public override void Action_DoIfSafe(Node node, string stack)
+        {
         }
 
         public override void Action_Move(Node node, string stack)

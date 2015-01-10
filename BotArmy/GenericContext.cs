@@ -36,6 +36,7 @@ namespace najsvan
         public static readonly int SUMMONER_HEAL_RANGE = 700;
         public static readonly int MIKAELS_RANGE = 750;
         public static readonly int WARD_SIGHT_RADIUS = 1200;
+        public static readonly int TURRET_RANGE = 950;
 
         public static readonly Dictionary<GameObjectTeam, List<WardSpot>> WARD_SPOTS = new Dictionary
             <GameObjectTeam, List<WardSpot>>
@@ -85,5 +86,12 @@ namespace najsvan
                 }
             }
         };
+
+        public static HeroInfo GetHeroInfo(Obj_AI_Hero hero)
+        {
+            HeroInfo result;
+            GenericContext.heroInfoDict.TryGetValue(hero.NetworkId, out result);
+            return result;
+        }
     }
 }
