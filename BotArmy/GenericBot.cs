@@ -501,9 +501,9 @@ namespace najsvan
 
         public abstract void Action_DoIfNotInDanger(Node node, String stack);
 
-        public bool Condition_IsUnsafe(Node node, String stack)
+        public bool Condition_IsSafe(Node node, String stack)
         {
-            return !ProducedContext.IS_MY_HERO_SAFE.Get();
+            return ProducedContext.IS_MY_HERO_SAFE.Get();
         }
 
         public void Action_MoveToSafety(Node node, String stack)

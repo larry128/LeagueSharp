@@ -238,28 +238,34 @@ namespace najsvan
 
         public static bool IsAllySafe(Obj_AI_Hero ally)
         {
+            if (ally.IsZombie || ally.IsDead || ally.Distance(ProducedContext.ALLY_SPAWN.Get()) < ally.BoundingRadius)
+            {
+                return true;
+            }
             var aboveDangerHp = ally.Health > GetTypicalHp(ally.Level, GenericContext.DANGER_UNDER_PERCENT);
             var allyInfo = GenericContext.GetHeroInfo(ally);
             var nearestEnemy = GetNearestHero(ally, false);
-            return ally.IsZombie || ally.IsDead || ally.Distance(ProducedContext.ALLY_SPAWN.Get()) < ally.BoundingRadius ||
-                   (
-                       !allyInfo.IsFocusedByTower()
-                       &&
-                       aboveDangerHp
-                       &&
-                       (
-                           GetDangerousEnemiesInRange(ally, GenericContext.SCAN_DISTANCE*2).Count == 0
-                           ||
-                           ProducedContext.ALL_ALLIES.Get()
-                               .Count(hero => hero != null && !hero.IsMe && BBetweenAandC(ally, hero, nearestEnemy)) > 0
-                           ||
-                           ProducedContext.ALL_ENEMIES.Get()
-                               .Count(
-                                   enemy => enemy != null &&
-                                       BBetweenAandC(ally.Position, GenericContext.GetHeroInfo(enemy).GetFacing(),
-                                           enemy.Position) && enemy.Distance(ally) < GenericContext.SCAN_DISTANCE) == 0
-                           )
-                       );
+            return 
+            (
+                GetDangerousEnemiesInRange(ally, GenericContext.SCAN_DISTANCE*2).Count == 0
+            )
+            ||
+            (
+                !allyInfo.IsFocusedByTower()
+                &&
+                aboveDangerHp
+                &&
+                (
+                    ProducedContext.ALL_ALLIES.Get()
+                        .Count(hero => hero != null && !hero.IsMe && BBetweenAandC(ally, hero, nearestEnemy)) > 0
+                    ||
+                    ProducedContext.ALL_ENEMIES.Get()
+                        .Count(
+                            enemy => enemy != null &&
+                                BBetweenAandC(ally.Position, GenericContext.GetHeroInfo(enemy).GetFacing(),
+                                    enemy.Position) && enemy.Distance(ally) < GenericContext.SCAN_DISTANCE) == 0
+                )
+            );
         }
 
         public static bool BBetweenAandC(Obj_AI_Base aObject, Obj_AI_Base bObject, Obj_AI_Base cObject)
