@@ -53,7 +53,14 @@ namespace najsvan
 
         public void Delete()
         {
-            File.Delete(statsPath);
+            try
+            {
+                File.Delete(statsPath);
+            }
+            catch
+            {
+                //ignore
+            }
         }
 
         private void Write()

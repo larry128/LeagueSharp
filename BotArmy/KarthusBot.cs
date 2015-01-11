@@ -1,5 +1,4 @@
 ﻿using LeagueSharp;
-using LeagueSharp.Common;
 using SharpDX;
 
 namespace najsvan

@@ -9,7 +9,6 @@ namespace najsvan
     {
         public static int currentTick = 0;
         public static int lastElixirBought = 0;
-        public static int lastFailedBuy = 0;
         public static int lastTickProcessed = 0;
         public static int lastWardDropped = 0;
         public static int lastDanger = 0;
@@ -21,7 +20,6 @@ namespace najsvan
         public static SpellSlot summonerIgnite;
         public static SpellSlot summonerFlash;
         public static Vector3 lastDestination = Vector3.Zero;
-        public static Dictionary<int, HeroInfo> heroInfoDict = new Dictionary<int, HeroInfo>();
         public static readonly List<ServerInteraction> SERVER_INTERACTIONS = new List<ServerInteraction>();
         public static readonly Obj_AI_Hero MY_HERO = ObjectManager.Player;
         public static readonly int SCAN_DISTANCE = 1400;
@@ -86,10 +84,16 @@ namespace najsvan
             }
         };
 
+        private static readonly Dictionary<int, HeroInfo> HERO_INFO_DICT = new Dictionary<int, HeroInfo>();
+
         public static HeroInfo GetHeroInfo(Obj_AI_Hero hero)
         {
             HeroInfo result;
-            GenericContext.heroInfoDict.TryGetValue(hero.NetworkId, out result);
+            if (!HERO_INFO_DICT.TryGetValue(hero.NetworkId, out result))
+            {
+                result = new HeroInfo(hero.NetworkId);
+                HERO_INFO_DICT.Add(hero.NetworkId, result);
+            }
             return result;
         }
     }

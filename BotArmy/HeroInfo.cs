@@ -1,20 +1,16 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections;
 using LeagueSharp;
+using LeagueSharp.Common;
 using SharpDX;
 
 namespace najsvan
 {
     public class HeroInfo
     {
-        private readonly int realHeroNetId;
-        private readonly Stack hpHistory = new Stack();
-        private Vector3 facing = Vector3.Zero;
+        private Vector2 direction = Vector2.Zero;
         private Obj_AI_Turret focusedByTower;
+        private readonly Stack hpHistory = new Stack();
+        private readonly int realHeroNetId;
 
         public HeroInfo(int realHeroNetId)
         {
@@ -23,8 +19,7 @@ namespace najsvan
 
         public void UpdateHpHistory()
         {
-            Obj_AI_Hero realHero = ObjectManager.GetUnitByNetworkId<Obj_AI_Hero>(realHeroNetId);
-            hpHistory.Push(realHero.Health);
+            hpHistory.Push(GetRealHero().Health);
             if (hpHistory.Count > 3)
             {
                 hpHistory.Pop();
@@ -33,9 +28,8 @@ namespace najsvan
 
         public float GetHpLost()
         {
-            Obj_AI_Hero realHero = ObjectManager.GetUnitByNetworkId<Obj_AI_Hero>(realHeroNetId);
-            var hpLastTick = (float)hpHistory.Peek();
-            return hpLastTick - realHero.Health;
+            var hpLastTick = (float) hpHistory.Peek();
+            return hpLastTick - GetRealHero().Health;
         }
 
         public bool IsGoingTowards(Obj_AI_Hero unit)
@@ -70,23 +64,34 @@ namespace najsvan
 
         public bool IsFocusedByTower()
         {
-            return focusedByTower != null;
+            return GetFocusedByTower() != null;
+        }
+
+        public Vector2 GetDirection()
+        {
+            return direction;
+        }
+
+        public void SetDirection(Vector2 start, Vector2 end)
+        {
+            direction = end - start;
+        }
+
+        public void UpdateDirection()
+        {
+            var start = GetRealHero().Position.To2D();
+            var end = GetRealHero().ServerPosition.To2D();
+            direction = end - start;
         }
 
         public Vector3 GetFacing()
         {
-            return facing;
+            return GetRealHero().Position + direction.To3D();
         }
 
-        public void SetFacing(Vector3 facing)
+        private Obj_AI_Hero GetRealHero()
         {
-            this.facing = facing;
-        }
-
-        public Obj_AI_Hero GetRealHero()
-        {
-            Obj_AI_Hero realHero = ObjectManager.GetUnitByNetworkId<Obj_AI_Hero>(realHeroNetId);
-            return realHero;
+            return ObjectManager.GetUnitByNetworkId<Obj_AI_Hero>(realHeroNetId);
         }
     }
 }

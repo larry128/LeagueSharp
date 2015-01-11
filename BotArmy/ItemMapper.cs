@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using LeagueSharp;
 using LeagueSharp.Common;
 
 namespace najsvan
@@ -17,7 +16,7 @@ namespace najsvan
                 var fields = typeof (ItemData).GetFields();
                 foreach (var field in fields)
                 {
-                    var item = (ItemData.Item)field.GetValue(data);
+                    var item = (ItemData.Item) field.GetValue(data);
                     var itemId = item.Id;
                     ITEM_MAP.Add(itemId, item);
                 }

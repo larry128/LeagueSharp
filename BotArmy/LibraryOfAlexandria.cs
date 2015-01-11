@@ -3,26 +3,26 @@ using System.Linq;
 using LeagueSharp;
 using LeagueSharp.Common;
 using SharpDX;
-using System;
 
 namespace najsvan
 {
     public static class LibraryOfAlexandria
     {
+        public delegate bool Condition<in T>(T hero);
+
         public static int GetSecondsSince(int actionTookPlaceAt)
         {
-            return (GenericContext.currentTick - actionTookPlaceAt) / 1000;
+            return (GenericContext.currentTick - actionTookPlaceAt)/1000;
         }
 
         public static int GetMinutesSince(int actionTookPlaceAt)
         {
-            return (GenericContext.currentTick - actionTookPlaceAt) / 1000 / 60;
+            return (GenericContext.currentTick - actionTookPlaceAt)/1000/60;
         }
-
 
         public static double GetTypicalHp(int level, double percent)
         {
-            return (GenericContext.BASE_LVL1_HP + (level * GenericContext.BASE_PER_LVL_HP)) * percent;
+            return (GenericContext.BASE_LVL1_HP + (level*GenericContext.BASE_PER_LVL_HP))*percent;
         }
 
         public static float GetHitboxDistance(float distance, GameObject obj)
@@ -55,15 +55,15 @@ namespace najsvan
                 var expandedInventory = new List<int>();
                 foreach (var inventorySlot in GetOccuppiedInventorySlots())
                 {
-                    ExpandRecipe((int)inventorySlot.Id, expandedInventory);
+                    ExpandRecipe((int) inventorySlot.Id, expandedInventory);
                 }
 
                 // reduce expandedInventoryList
                 foreach (var itemId in GenericContext.shoppingList)
                 {
-                    if (!expandedInventory.Remove((int)itemId))
+                    if (!expandedInventory.Remove((int) itemId))
                     {
-                        return ItemMapper.GetItem((int)itemId);
+                        return ItemMapper.GetItem((int) itemId);
                     }
                 }
             }
@@ -158,9 +158,9 @@ namespace najsvan
         {
             @into.Add(itemId);
             var item = ItemMapper.GetItem(itemId);
-            if (item.HasValue && item.Value.RecipeItems != null && item.Value.RecipeItems.Length > 0)
+            if (item.HasValue && item.Value.From != null && item.Value.From.Length > 0)
             {
-                var recipe = item.Value.RecipeItems;
+                var recipe = item.Value.From;
                 @into.AddRange(recipe);
                 foreach (var id in recipe)
                 {
@@ -171,7 +171,7 @@ namespace najsvan
 
         public static int GetSummonerHealAmount()
         {
-            return 75 + 15 * GenericContext.MY_HERO.Level;
+            return 75 + 15*GenericContext.MY_HERO.Level;
         }
 
         public static void SafeMoveToDestination(Vector3 destination)
@@ -206,34 +206,34 @@ namespace najsvan
 
         public static bool IsAllyInDanger(Obj_AI_Hero ally)
         {
-            if (!ally.IsDead && !ally.InFountain())
+            if (ally.IsDead || ally.InFountain())
             {
                 return false;
             }
-            var enemies = GetDangerousEnemiesInRange(ally, GenericContext.SCAN_DISTANCE / 2);
+            var enemies = GetDangerousEnemiesInRange(ally, GenericContext.SCAN_DISTANCE/2);
             var dangerHp = ally.Health < GetTypicalHp(ally.Level, GenericContext.DANGER_UNDER_PERCENT);
             var fearHp = ally.Health < GetTypicalHp(ally.Level, GenericContext.FEAR_UNDER_PERCENT);
             var allyInfo = GenericContext.GetHeroInfo(ally);
             var nearestEnemyTurret = GetNearestTower(ally, false);
 
-            return  
-            (
-                dangerHp 
-                &&
+            return
                 (
-                    enemies.Count > 0
+                    dangerHp
+                    &&
+                    (
+                        enemies.Count > 0
+                        ||
+                        ally.Distance(nearestEnemyTurret) < GenericContext.TURRET_RANGE
+                        ||
+                        allyInfo.GetHpLost() > 0.3*ally.MaxHealth
+                        )
+                    )
                 ||
-                    ally.Distance(nearestEnemyTurret) < GenericContext.TURRET_RANGE
-                ||
-                    allyInfo.GetHpLost() > 0.3 * ally.MaxHealth
-                )
-            )
-            ||
-            (
-                fearHp 
-                &&
-                allyInfo.IsFocusedByTower()
-            );
+                (
+                    fearHp
+                    &&
+                    allyInfo.IsFocusedByTower()
+                    );
         }
 
         public static bool IsAllySafe(Obj_AI_Hero ally)
@@ -241,27 +241,37 @@ namespace najsvan
             var aboveDangerHp = ally.Health > GetTypicalHp(ally.Level, GenericContext.DANGER_UNDER_PERCENT);
             var allyInfo = GenericContext.GetHeroInfo(ally);
             var nearestEnemy = GetNearestHero(ally, false);
-            return  ally.IsZombie || ally.IsDead || ally.Distance(ProducedContext.ALLY_SPAWN.Get()) < ally.BoundingRadius || 
-                ( 
-                    !allyInfo.IsFocusedByTower()
-                    &&
-                    aboveDangerHp
-                    &&
-                    (
-                        GetDangerousEnemiesInRange(ally, GenericContext.SCAN_DISTANCE * 2).Count == 0
-                        ||
-                        ProducedContext.ALL_ALLIES.Get().Count(hero => BBetweenAandC(ally.Position, hero.Position, nearestEnemy.Position)) > 0
-                        ||
-                        ProducedContext.ALL_ENEMIES.Get().Count(enemy => BBetweenAandC(ally.Position, GenericContext.GetHeroInfo(enemy).GetFacing(), enemy.Position) && enemy.Distance(ally) < GenericContext.SCAN_DISTANCE) == 0
-                    )
-                );
+            return ally.IsZombie || ally.IsDead || ally.Distance(ProducedContext.ALLY_SPAWN.Get()) < ally.BoundingRadius ||
+                   (
+                       !allyInfo.IsFocusedByTower()
+                       &&
+                       aboveDangerHp
+                       &&
+                       (
+                           GetDangerousEnemiesInRange(ally, GenericContext.SCAN_DISTANCE*2).Count == 0
+                           ||
+                           ProducedContext.ALL_ALLIES.Get()
+                               .Count(hero => hero != null && !hero.IsMe && BBetweenAandC(ally, hero, nearestEnemy)) > 0
+                           ||
+                           ProducedContext.ALL_ENEMIES.Get()
+                               .Count(
+                                   enemy => enemy != null &&
+                                       BBetweenAandC(ally.Position, GenericContext.GetHeroInfo(enemy).GetFacing(),
+                                           enemy.Position) && enemy.Distance(ally) < GenericContext.SCAN_DISTANCE) == 0
+                           )
+                       );
+        }
+
+        public static bool BBetweenAandC(Obj_AI_Base aObject, Obj_AI_Base bObject, Obj_AI_Base cObject)
+        {
+            Assert.False(aObject.NetworkId == bObject.NetworkId, "aObject.NetworkId == bObject.NetworkId");
+            Assert.False(cObject.NetworkId == bObject.NetworkId, "cObject.NetworkId == bObject.NetworkId");
+            Assert.False(aObject.NetworkId == cObject.NetworkId, "aObject.NetworkId == cObject.NetworkId");
+            return BBetweenAandC(aObject.Position, bObject.Position, cObject.Position);
         }
 
         public static bool BBetweenAandC(Vector3 aObject, Vector3 bObject, Vector3 cObject)
         {
-            Assert.False(aObject == bObject, "aObject == bObject");
-            Assert.False(cObject == bObject, "cObject == bObject");
-            Assert.False(aObject == cObject, "aObject == cObject");
             var aCDistance = aObject.Distance(cObject);
             return cObject.Distance(bObject) < aCDistance && cObject.Distance(aObject) < aCDistance;
         }
@@ -336,7 +346,5 @@ namespace najsvan
             }
             return result;
         }
-
-        public delegate bool Condition<in T>(T hero);
     }
 }

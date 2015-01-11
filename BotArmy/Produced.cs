@@ -4,8 +4,8 @@
     {
         public delegate T Producer();
 
-        private readonly Producer producer;
         private T value;
+        private readonly Producer producer;
 
         public Produced(Producer producer)
         {

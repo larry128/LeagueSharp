@@ -51,7 +51,14 @@ namespace najsvan
 
         public void Delete()
         {
-            File.Delete(logPath);
+            try
+            {
+                File.Delete(logPath);
+            }
+            catch
+            {
+                //ignore
+            }
         }
 
         private void Log(String severity, String message)
