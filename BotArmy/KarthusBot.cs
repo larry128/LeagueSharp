@@ -34,50 +34,63 @@ namespace najsvan
 
         public override void Action_ZombieCast(Node node, string stack)
         {
+            // QWER
         }
 
         public override bool IsWardSpellReady()
         {
+            // W ready and enough mana and don't see all enemies alive and not fighting
             return false;
         }
 
         public override bool WardSpellIsInRange(Vector2 position)
         {
+            // just some pytghoras
             return false;
         }
 
         public override void WardSpellCast(Vector2 position)
         {
+            // W
         }
 
         public override bool Condition_WillInterruptSelf(Node node, string stack)
         {
+            // karthus cant really interrupt himself
             return false;
         }
 
         public override void Action_DoRecklesslyButDontInterruptSelf(Node node, string stack)
         {
+            // karthus cant really interrupt himself
         }
 
         public override void Action_DoRecklessly(Node node, string stack)
         {
+            // E
         }
 
         public override bool Action_RecklessMove(Node node, string stack)
         {
+            // go kill someone if you can do it in a few seconds (? flash ? ... if you can get out safe)
             return false;
         }
 
         public override void Action_DoIfNotInDanger(Node node, string stack)
         {
+            // Q
+            // W
         }
 
         public override void Action_DoIfSafe(Node node, string stack)
         {
+            // R
         }
 
         public override void Action_Move(Node node, string stack)
         {
+            // try to harass or
+            // delegate to supportmovement or other movement class
         }
     }
 }

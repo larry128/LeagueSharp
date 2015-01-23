@@ -27,7 +27,7 @@ namespace najsvan
                 config = new Menu(botName, botName, true);
                 SetupMenu();
                 SetupContext();
-                Utility.DelayAction.Add(2000, StartProcessing);
+                Utility.DelayAction.Add(5000, StartProcessing);
             }
             catch (Exception e)
             {
@@ -87,8 +87,9 @@ namespace najsvan
                 var worldDirection = worldSketchyDirection;
                 var sdLength = Math.Sqrt(worldSketchyDirection.X * worldSketchyDirection.X + worldSketchyDirection.Y * worldSketchyDirection.Y);
                 const int length = 600;
-                if (sdLength != 0) { 
-                    var coefficient = length/(float)sdLength;
+                if (sdLength != 0)
+                {
+                    var coefficient = length / (float)sdLength;
                     worldDirection *= coefficient;
                     var start = Drawing.WorldToScreen(GenericContext.MY_HERO.Position);
                     var end = Drawing.WorldToScreen(GenericContext.MY_HERO.Position + worldDirection.To3D());
@@ -107,7 +108,8 @@ namespace najsvan
             if (unit.IsValid<Obj_AI_Hero>() && args.Target.IsValid && args.Target.Position.IsValid())
             {
                 var hero = unit as Obj_AI_Hero;
-                if (hero != null) {
+                if (hero != null)
+                {
                     GenericContext.GetHeroInfo(hero).SetDirection(hero.Position.To2D(), args.Target.Position.To2D());
                 }
             }
@@ -254,20 +256,25 @@ namespace najsvan
                     var interactionLocal = interaction;
                     Utility.DelayAction.Add(delay, () =>
                     {
-                        GetLogger().Debug(interactionLocal.change + " at tick: " + GenericContext.currentTick);
-                        interactionLocal.serverAction();
-                        var movingTo = interactionLocal.change as MovingTo;
-                        if (movingTo != null)
+                        try
                         {
-                            GenericContext.lastDestination = movingTo.destination;
+                            GetLogger().Debug(interactionLocal.change + " at tick: " + GenericContext.currentTick);
+                            interactionLocal.serverAction();
+                            var movingTo = interactionLocal.change as MovingTo;
+                            if (movingTo != null)
+                            {
+                                GenericContext.lastDestination = movingTo.destination;
+                            }
+                            var holdingPosition = interactionLocal.change as HoldingPosition;
+                            if (holdingPosition != null)
+                            {
+                                GenericContext.lastDestination = Vector3.Zero;
+                            }
                         }
-                        var holdingPosition = interactionLocal.change as HoldingPosition;
-                        if (holdingPosition != null)
+                        finally
                         {
-                            GenericContext.lastDestination = Vector3.Zero;
+                            GenericContext.SERVER_INTERACTIONS.Remove(interactionLocal);
                         }
-
-                        GenericContext.SERVER_INTERACTIONS.Remove(interactionLocal);
                     });
                 }
             }
@@ -443,6 +450,7 @@ namespace najsvan
 
         public void Action_RecklessSSAndItems(Node node, String stack)
         {
+            // heal
             if (GenericContext.summonerHeal.IsReady())
             {
                 var healTarget = LibraryOfAlexandria.FindAllyInDanger(GenericContext.SUMMONER_HEAL_RANGE);
@@ -454,6 +462,7 @@ namespace najsvan
                 }
             }
 
+            // mikaels
             var mikaelsSlot = LibraryOfAlexandria.GetItemSlot(ItemId.Mikaels_Crucible);
             if (mikaelsSlot != null && mikaelsSlot.SpellSlot.IsReady())
             {
@@ -466,14 +475,26 @@ namespace najsvan
                     return;
                 }
             }
+
+            // ignite
+            if (GenericContext.summonerIgnite.IsReady())
+            {
+            }
+
+            // dfg
+            // queens
+            // locket
+            // talisman
+            // twins
         }
+
 
         public abstract void Action_DoRecklessly(Node node, String stack);
         public abstract bool Action_RecklessMove(Node node, String stack);
 
         public bool Condition_DangerCooldown(Node node, String stack)
         {
-            return LibraryOfAlexandria.GetSecondsSince(GenericContext.lastDanger) < 3;
+            return LibraryOfAlexandria.GetSecondsSince(GenericContext.lastDanger) < GenericContext.DANGER_COOLDOWN;
         }
 
         public bool Condition_IsInDanger(Node node, String stack)
@@ -483,7 +504,8 @@ namespace najsvan
 
         public void Action_DoIfInDanger(Node node, String stack)
         {
-            if (GenericContext.summonerFlash.IsReady())
+            // flash
+            if (GenericContext.summonerFlash.IsReady() && false)
             {
                 var safeFlashPosition = LibraryOfAlexandria.GetNearestSafeFlashPosition();
                 if (safeFlashPosition.HasValue)
@@ -497,6 +519,7 @@ namespace najsvan
                     return;
                 }
             }
+            // seraphs
         }
 
         public abstract void Action_DoIfNotInDanger(Node node, String stack);
@@ -508,11 +531,12 @@ namespace najsvan
 
         public void Action_MoveToSafety(Node node, String stack)
         {
-            LibraryOfAlexandria.SafeMoveToDestination(ProducedContext.ALLY_SPAWN.Get().Position);
+            //LibraryOfAlexandria.GetNearestSafePosition();
         }
 
         public void Action_AutoAttack(Node node, String stack)
         {
+            // orbwalk
         }
 
         public abstract void Action_DoIfSafe(Node node, String stack);
@@ -543,18 +567,19 @@ namespace najsvan
 
         public bool Action_GoBuy(Node node, String stack)
         {
+            // recall or walk
             return false;
         }
 
         public bool Action_MoveToWard(Node node, String stack)
         {
-            LibraryOfAlexandria.SafeMoveToDestination(ProducedContext.ENEMY_SPAWN.Get().Position);
-            return true;
+            //LibraryOfAlexandria.SafeMoveToDestination(ProducedContext.ENEMY_SPAWN.Get().Position);
+            return false;
         }
 
         public void Action_MoveToSpawn(Node node, String stack)
         {
-            LibraryOfAlexandria.SafeMoveToDestination(ProducedContext.ALLY_SPAWN.Get().Position);
+            //LibraryOfAlexandria.SafeMoveToDestination(ProducedContext.ALLY_SPAWN.Get().Position);
         }
 
         public bool Condition_IsOnSpawn(Node node, String stack)

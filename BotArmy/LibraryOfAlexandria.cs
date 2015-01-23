@@ -12,17 +12,17 @@ namespace najsvan
 
         public static int GetSecondsSince(int actionTookPlaceAt)
         {
-            return (GenericContext.currentTick - actionTookPlaceAt)/1000;
+            return (GenericContext.currentTick - actionTookPlaceAt) / 1000;
         }
 
         public static int GetMinutesSince(int actionTookPlaceAt)
         {
-            return (GenericContext.currentTick - actionTookPlaceAt)/1000/60;
+            return (GenericContext.currentTick - actionTookPlaceAt) / 1000 / 60;
         }
 
         public static double GetTypicalHp(int level, double percent)
         {
-            return (GenericContext.BASE_LVL1_HP + (level*GenericContext.BASE_PER_LVL_HP))*percent;
+            return (GenericContext.BASE_LVL1_HP + (level * GenericContext.BASE_PER_LVL_HP)) * percent;
         }
 
         public static float GetHitboxDistance(float distance, GameObject obj)
@@ -47,7 +47,7 @@ namespace najsvan
             return null;
         }
 
-        public static ItemData.Item? GetNextBuyItemId()
+        public static LeagueSharp.Common.Data.ItemData.Item? GetNextBuyItemId()
         {
             if (GenericContext.shoppingList.Length > 0)
             {
@@ -55,15 +55,15 @@ namespace najsvan
                 var expandedInventory = new List<int>();
                 foreach (var inventorySlot in GetOccuppiedInventorySlots())
                 {
-                    ExpandRecipe((int) inventorySlot.Id, expandedInventory);
+                    ExpandRecipe((int)inventorySlot.Id, expandedInventory);
                 }
 
                 // reduce expandedInventoryList
                 foreach (var itemId in GenericContext.shoppingList)
                 {
-                    if (!expandedInventory.Remove((int) itemId))
+                    if (!expandedInventory.Remove((int)itemId))
                     {
-                        return ItemMapper.GetItem((int) itemId);
+                        return ItemMapper.GetItem((int)itemId);
                     }
                 }
             }
@@ -171,7 +171,7 @@ namespace najsvan
 
         public static int GetSummonerHealAmount()
         {
-            return 75 + 15*GenericContext.MY_HERO.Level;
+            return 75 + 15 * GenericContext.MY_HERO.Level;
         }
 
         public static void SafeMoveToDestination(Vector3 destination)
@@ -210,7 +210,7 @@ namespace najsvan
             {
                 return false;
             }
-            var enemies = GetDangerousEnemiesInRange(ally, GenericContext.SCAN_DISTANCE/2);
+            var enemies = GetDangerousEnemiesInRange(ally, GenericContext.SCAN_DISTANCE / 2);
             var dangerHp = ally.Health < GetTypicalHp(ally.Level, GenericContext.DANGER_UNDER_PERCENT);
             var fearHp = ally.Health < GetTypicalHp(ally.Level, GenericContext.FEAR_UNDER_PERCENT);
             var allyInfo = GenericContext.GetHeroInfo(ally);
@@ -225,7 +225,7 @@ namespace najsvan
                         ||
                         ally.Distance(nearestEnemyTurret) < GenericContext.TURRET_RANGE
                         ||
-                        allyInfo.GetHpLost() > 0.3*ally.MaxHealth
+                        allyInfo.GetHpLost() > 0.3 * ally.MaxHealth
                         )
                     )
                 ||
@@ -245,9 +245,9 @@ namespace najsvan
             var aboveDangerHp = ally.Health > GetTypicalHp(ally.Level, GenericContext.DANGER_UNDER_PERCENT);
             var allyInfo = GenericContext.GetHeroInfo(ally);
             var nearestEnemy = GetNearestHero(ally, false);
-            return 
+            return
             (
-                GetDangerousEnemiesInRange(ally, GenericContext.SCAN_DISTANCE*2).Count == 0
+                GetDangerousEnemiesInRange(ally, GenericContext.SCAN_DISTANCE * 2).Count == 0
             )
             ||
             (
@@ -299,9 +299,14 @@ namespace najsvan
             return result;
         }
 
-        public static Vector3? GetNearestSafeFlashPosition()
+        public static Vector3? GetNearestSafePosition()
         {
             return ProducedContext.ALLY_SPAWN.Get().Position;
+        }
+
+        public static Vector3? GetNearestSafeFlashPosition()
+        {
+            return GetNearestSafePosition();
         }
 
         public static List<T> ProcessEachGameObject<T>(Condition<T> cond) where T : GameObject, new()
@@ -352,5 +357,7 @@ namespace najsvan
             }
             return result;
         }
+
+
     }
 }

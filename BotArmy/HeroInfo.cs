@@ -28,7 +28,7 @@ namespace najsvan
 
         public float GetHpLost()
         {
-            var hpLastTick = (float) hpHistory.Peek();
+            var hpLastTick = (float)hpHistory.Peek();
             return hpLastTick - GetRealHero().Health;
         }
 
@@ -74,14 +74,17 @@ namespace najsvan
 
         public void SetDirection(Vector2 start, Vector2 end)
         {
-            direction = end - start;
+            if (!start.Equals(end))
+            {
+                direction = end - start;
+            }
         }
 
         public void UpdateDirection()
         {
             var start = GetRealHero().Position.To2D();
             var end = GetRealHero().ServerPosition.To2D();
-            direction = end - start;
+            SetDirection(start, end);
         }
 
         public Vector3 GetFacing()

@@ -33,6 +33,7 @@ namespace najsvan
         public static readonly int MIKAELS_RANGE = 750;
         public static readonly int WARD_SIGHT_RADIUS = 1200;
         public static readonly int TURRET_RANGE = 950;
+        public static readonly int DANGER_COOLDOWN = 3;
         public static readonly String TARGETED_BY_TOWER_OBJ_NAME = "yikes";
 
         public static readonly Dictionary<GameObjectTeam, List<WardSpot>> WARD_SPOTS = new Dictionary
