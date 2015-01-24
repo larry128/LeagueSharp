@@ -3,7 +3,7 @@ using SharpDX;
 
 namespace najsvan
 {
-    public abstract class ExpectedChange
+    public abstract class ServerRequest
     {
         public override string ToString()
         {
@@ -11,27 +11,27 @@ namespace najsvan
         }
     }
 
-    public class SpellLeveledUp : ExpectedChange
+    public class SpellLeveledUp : ServerRequest
     {
     }
 
-    public class SpellCast : ExpectedChange
+    public class SpellCast : ServerRequest
     {
     }
 
-    public class BuyItem : ExpectedChange
+    public class BuyItem : ServerRequest
     {
     }
 
-    public class SellItem : ExpectedChange
+    public class SellItem : ServerRequest
     {
     }
 
-    public class HoldingPosition : ExpectedChange
+    public class HoldingPosition : ServerRequest
     {
     }
 
-    public class MovingTo : ExpectedChange
+    public class MovingTo : ServerRequest
     {
         public readonly Vector3 destination;
 
@@ -41,7 +41,7 @@ namespace najsvan
         }
     }
 
-    public class WardUsed : ExpectedChange
+    public class WardUsed : ServerRequest
     {
         public readonly InventorySlot wardSlot;
 

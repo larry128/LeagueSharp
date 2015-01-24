@@ -3,9 +3,9 @@ using SharpDX;
 
 namespace najsvan
 {
-    public class KarthusBot : GenericBot
+    public class KarthusAI : GenericAI
     {
-        public KarthusBot()
+        public KarthusAI()
         {
             GenericContext.levelSpellsOrder = new[]
             {
@@ -43,10 +43,10 @@ namespace najsvan
             return false;
         }
 
-        public override bool WardSpellIsInRange(Vector2 position)
+        public override float GetWardSpellRange()
         {
             // just some pytghoras
-            return false;
+            return 0;
         }
 
         public override void WardSpellCast(Vector2 position)

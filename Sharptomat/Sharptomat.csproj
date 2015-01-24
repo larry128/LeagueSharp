@@ -67,8 +67,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Clearable.cs" />
-    <Compile Include="LibraryOfAlexandria.cs" />
-    <Compile Include="ExpectedChange.cs" />
+    <Compile Include="LibraryOfAIexandria.cs" />
+    <Compile Include="ServerRequest.cs" />
     <Compile Include="HeroInfo.cs" />
     <Compile Include="ItemMapper.cs" />
     <Compile Include="JSONBTree.cs" />
@@ -77,12 +77,13 @@
     <Compile Include="ServerInteraction.cs" />
     <Compile Include="Statistics.cs" />
     <Compile Include="ProducedContext.cs" />
-    <Compile Include="GenericBot.cs" />
+    <Compile Include="GenericAI.cs" />
     <Compile Include="Logger.cs" />
     <Compile Include="Produced.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="KarthusBot.cs" />
+    <Compile Include="KarthusAI.cs" />
+    <Compile Include="Targeting.cs" />
     <Compile Include="TooFastException.cs" />
     <Compile Include="WardSpot.cs" />
   </ItemGroup>

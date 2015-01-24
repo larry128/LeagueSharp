@@ -18,7 +18,7 @@ namespace najsvan
             switch (champName)
             {
                 case "Karthus":
-                    GenericBot bot = new KarthusBot();
+                    GenericAI bot = new KarthusAI();
                     break;
             }
         }

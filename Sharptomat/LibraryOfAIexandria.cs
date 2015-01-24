@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using LeagueSharp;
 using LeagueSharp.Common;
@@ -6,7 +7,7 @@ using SharpDX;
 
 namespace najsvan
 {
-    public static class LibraryOfAlexandria
+    public static class LibraryOfAIexandria
     {
         public delegate bool Condition<in T>(T hero);
 
@@ -20,9 +21,9 @@ namespace najsvan
             return (GenericContext.currentTick - actionTookPlaceAt) / 1000 / 60;
         }
 
-        public static double GetTypicalHp(int level, double percent)
+        public static bool IsTypicalHpUnder(Obj_AI_Hero hero, double percent)
         {
-            return (GenericContext.BASE_LVL1_HP + (level * GenericContext.BASE_PER_LVL_HP)) * percent;
+            return hero.Health < (GenericContext.BASE_LVL1_HP + (hero.Level * GenericContext.BASE_PER_LVL_HP)) * percent;
         }
 
         public static float GetHitboxDistance(float distance, GameObject obj)
@@ -90,7 +91,7 @@ namespace najsvan
 
             GenericContext.SERVER_INTERACTIONS.ForEach(interaction =>
             {
-                var wardUsed = interaction.change as WardUsed;
+                var wardUsed = interaction.request as WardUsed;
                 if (wardUsed != null)
                 {
                     wardsUsed.Add(wardUsed.wardSlot);
@@ -185,25 +186,6 @@ namespace najsvan
             }
         }
 
-        public static Obj_AI_Hero FindAllyInDanger(float range)
-        {
-            Obj_AI_Hero lowestHpAlly = null;
-            var lowestHp = float.MaxValue;
-
-            ProducedContext.ALL_ALLIES.Get().ForEach(ally =>
-            {
-                if (GetHitboxDistance(GenericContext.MY_HERO, ally) < range && !ally.InFountain() && !ally.IsDead)
-                {
-                    if (ally.Health < lowestHp && ally.Health > 1 && IsAllyInDanger(ally))
-                    {
-                        lowestHpAlly = ally;
-                        lowestHp = ally.Health;
-                    }
-                }
-            });
-            return lowestHpAlly;
-        }
-
         public static bool IsAllyInDanger(Obj_AI_Hero ally)
         {
             if (ally.IsDead || ally.InFountain())
@@ -211,8 +193,8 @@ namespace najsvan
                 return false;
             }
             var enemies = GetDangerousEnemiesInRange(ally, GenericContext.SCAN_DISTANCE / 2);
-            var dangerHp = ally.Health < GetTypicalHp(ally.Level, GenericContext.DANGER_UNDER_PERCENT);
-            var fearHp = ally.Health < GetTypicalHp(ally.Level, GenericContext.FEAR_UNDER_PERCENT);
+            var dangerHp = IsTypicalHpUnder(ally, GenericContext.DANGER_UNDER_PERCENT);
+            var fearHp = IsTypicalHpUnder(ally, GenericContext.FEAR_UNDER_PERCENT);
             var allyInfo = GenericContext.GetHeroInfo(ally);
             var nearestEnemyTurret = GetNearestTower(ally, false);
 
@@ -236,36 +218,16 @@ namespace najsvan
                     );
         }
 
-        public static bool IsAllySafe(Obj_AI_Hero ally)
+        public static bool IsHeroSafe(Obj_AI_Hero hero)
         {
-            if (ally.IsZombie || ally.IsDead || ally.Distance(ProducedContext.ALLY_SPAWN.Get()) < ally.BoundingRadius)
+            var hisSpawn = hero.Team == GenericContext.ALLY_TEAM
+                ? ProducedContext.ALLY_SPAWN
+                : ProducedContext.ENEMY_SPAWN;
+            if (hero.IsZombie || hero.IsDead || hero.Distance(hisSpawn.Get()) < hero.BoundingRadius)
             {
                 return true;
             }
-            var aboveDangerHp = ally.Health > GetTypicalHp(ally.Level, GenericContext.DANGER_UNDER_PERCENT);
-            var allyInfo = GenericContext.GetHeroInfo(ally);
-            var nearestEnemy = GetNearestHero(ally, false);
-            return
-            (
-                GetDangerousEnemiesInRange(ally, GenericContext.SCAN_DISTANCE * 2).Count == 0
-            )
-            ||
-            (
-                !allyInfo.IsFocusedByTower()
-                &&
-                aboveDangerHp
-                &&
-                (
-                    ProducedContext.ALL_ALLIES.Get()
-                        .Count(hero => hero != null && !hero.IsMe && BBetweenAandC(ally, hero, nearestEnemy)) > 0
-                    ||
-                    ProducedContext.ALL_ENEMIES.Get()
-                        .Count(
-                            enemy => enemy != null &&
-                                BBetweenAandC(ally.Position, GenericContext.GetHeroInfo(enemy).GetFacing(),
-                                    enemy.Position) && enemy.Distance(ally) < GenericContext.SCAN_DISTANCE) == 0
-                )
-            );
+            return false;
         }
 
         public static bool BBetweenAandC(Obj_AI_Base aObject, Obj_AI_Base bObject, Obj_AI_Base cObject)
@@ -339,25 +301,5 @@ namespace najsvan
             }
             return result;
         }
-
-        public static Obj_AI_Hero GetNearestHero(Obj_AI_Hero hero, bool alliedToHero)
-        {
-            Obj_AI_Hero result = null;
-            var lowestDistance = float.MaxValue;
-            var turretTeamCondition = alliedToHero ? hero.IsAlly : !hero.IsAlly;
-            var heroes = turretTeamCondition ? ProducedContext.ALL_ALLIES.Get() : ProducedContext.ALL_ENEMIES.Get();
-            foreach (var other in heroes)
-            {
-                var distance = other.Distance(hero);
-                if (distance < lowestDistance && other != hero)
-                {
-                    result = other;
-                    lowestDistance = distance;
-                }
-            }
-            return result;
-        }
-
-
     }
 }

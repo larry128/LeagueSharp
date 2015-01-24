@@ -9,14 +9,13 @@ using Color = System.Drawing.Color;
 
 namespace najsvan
 {
-    public abstract class GenericBot
+    public abstract class GenericAI
     {
-        public delegate void Action<in T>(T change);
-
+        private delegate void WardAction(Vector2 position, InventorySlot wardSlot);
         private readonly JSONBTree bTree;
         private readonly Menu config;
 
-        public GenericBot()
+        public GenericAI()
         {
             try
             {
@@ -64,7 +63,7 @@ namespace najsvan
             if (args.ToString().ToLower().Contains(GenericContext.TARGETED_BY_TOWER_OBJ_NAME))
             {
                 GenericContext.GetHeroInfo(GenericContext.MY_HERO)
-                    .SetFocusedByTower(LibraryOfAlexandria.GetNearestTower(GenericContext.MY_HERO, false));
+                    .SetFocusedByTower(LibraryOfAIexandria.GetNearestTower(GenericContext.MY_HERO, false));
             }
         }
 
@@ -182,7 +181,7 @@ namespace najsvan
             {
                 if (args.WParam == 0x75) // F6 - test shit
                 {
-                    var nextToBuy = LibraryOfAlexandria.GetNextBuyItemId();
+                    var nextToBuy = LibraryOfAIexandria.GetNextBuyItemId();
                     Game.PrintChat("nextToBuy: " + ((ItemId)nextToBuy.Value.Id));
                     Game.PrintChat("price: " + nextToBuy.Value.GoldBase);
                 }
@@ -258,14 +257,14 @@ namespace najsvan
                     {
                         try
                         {
-                            GetLogger().Debug(interactionLocal.change + " at tick: " + GenericContext.currentTick);
+                            GetLogger().Debug(interactionLocal.request + " at tick: " + GenericContext.currentTick);
                             interactionLocal.serverAction();
-                            var movingTo = interactionLocal.change as MovingTo;
+                            var movingTo = interactionLocal.request as MovingTo;
                             if (movingTo != null)
                             {
                                 GenericContext.lastDestination = movingTo.destination;
                             }
-                            var holdingPosition = interactionLocal.change as HoldingPosition;
+                            var holdingPosition = interactionLocal.request as HoldingPosition;
                             if (holdingPosition != null)
                             {
                                 GenericContext.lastDestination = Vector3.Zero;
@@ -323,7 +322,7 @@ namespace najsvan
             // buy
             if ((GenericContext.MY_HERO.InShop() || GenericContext.MY_HERO.IsDead))
             {
-                var nextToBuy = LibraryOfAlexandria.GetNextBuyItemId();
+                var nextToBuy = LibraryOfAIexandria.GetNextBuyItemId();
                 var elixir = ItemMapper.GetItem((int)GenericContext.shoppingListElixir);
                 // handle initial consumables first
                 if (GenericContext.shoppingListConsumables.Length > 0 && GenericContext.MY_HERO.Level == 1)
@@ -339,11 +338,11 @@ namespace najsvan
                 }
                 else if (nextToBuy.HasValue && GenericContext.MY_HERO.GoldCurrent >= nextToBuy.Value.GoldBase)
                 {
-                    if (LibraryOfAlexandria.GetOccuppiedInventorySlots().Count == 7 && nextToBuy.Value.GoldBase == nextToBuy.Value.GoldPrice)
+                    if (LibraryOfAIexandria.GetOccuppiedInventorySlots().Count == 7 && nextToBuy.Value.GoldBase == nextToBuy.Value.GoldPrice)
                     {
-                        var wardSlot = LibraryOfAlexandria.GetItemSlot(ItemId.Stealth_Ward);
-                        var manaPotSlot = LibraryOfAlexandria.GetItemSlot(ItemId.Mana_Potion);
-                        var healthPotSlot = LibraryOfAlexandria.GetItemSlot(ItemId.Health_Potion);
+                        var wardSlot = LibraryOfAIexandria.GetItemSlot(ItemId.Stealth_Ward);
+                        var manaPotSlot = LibraryOfAIexandria.GetItemSlot(ItemId.Mana_Potion);
+                        var healthPotSlot = LibraryOfAIexandria.GetItemSlot(ItemId.Health_Potion);
                         if (wardSlot != null)
                         {
                             GenericContext.SERVER_INTERACTIONS.Add(new ServerInteraction(new SellItem(),
@@ -366,7 +365,7 @@ namespace najsvan
                             () => GenericContext.MY_HERO.BuyItem((ItemId)nextToBuy.Value.Id)));
                     }
                 }
-                else if (!nextToBuy.HasValue && LibraryOfAlexandria.GetMinutesSince(GenericContext.lastElixirBought) > 3 && elixir.HasValue &&
+                else if (!nextToBuy.HasValue && LibraryOfAIexandria.GetMinutesSince(GenericContext.lastElixirBought) > 3 && elixir.HasValue &&
                          GenericContext.MY_HERO.GoldCurrent >= elixir.Value.GoldBase)
                 {
                     GenericContext.SERVER_INTERACTIONS.Add(new ServerInteraction(new BuyItem(), () => GenericContext.MY_HERO.BuyItem(GenericContext.shoppingListElixir)));
@@ -389,12 +388,37 @@ namespace najsvan
 
         public void Action_DropWard(Node node, String stack)
         {
+            PossibleToWard((position, wardSlot) =>
+            {
+                if (IsWardSpellReady() && GenericContext.MY_HERO.Distance(position) < GetWardSpellRange())
+                {
+                    WardSpellCast(position);
+                }
+                else if (wardSlot != null)
+                {
+                    var wardSlotSpell = new Spell(wardSlot.SpellSlot,
+                        LibraryOfAIexandria.GetHitboxDistance(
+                            GenericContext.WARD_PLACE_DISTANCE,
+                            GenericContext.MY_HERO));
+                    if (wardSlotSpell.IsInRange(position.To3D()))
+                    {
+                        GenericContext.SERVER_INTERACTIONS.Add(
+                            new ServerInteraction(new WardUsed(wardSlot),
+                                () => wardSlotSpell.Cast(position)));
+                    }
+                }
+            });
+
+        }
+
+        private void PossibleToWard(WardAction action)
+        {
             if (GenericContext.MY_HERO.Level > 1)
             {
-                var wardSlot = LibraryOfAlexandria.GetWardSlot();
+                var wardSlot = LibraryOfAIexandria.GetWardSlot();
 
                 if ((IsWardSpellReady() || wardSlot != null) &&
-                    LibraryOfAlexandria.GetSecondsSince(GenericContext.lastWardDropped) > 4)
+                    LibraryOfAIexandria.GetSecondsSince(GenericContext.lastWardDropped) > 4)
                 {
                     var keys = GenericContext.WARD_SPOTS.Keys;
                     foreach (var key in keys)
@@ -407,26 +431,10 @@ namespace najsvan
                                 foreach (var wardSpot in values)
                                 {
                                     var position = wardSpot.GetPosition();
-                                    var isAWardNear = LibraryOfAlexandria.IsAWardNear(position);
+                                    var isAWardNear = LibraryOfAIexandria.IsAWardNear(position);
                                     if (!isAWardNear)
                                     {
-                                        if (IsWardSpellReady() && WardSpellIsInRange(position))
-                                        {
-                                            WardSpellCast(position);
-                                        }
-                                        else if (wardSlot != null)
-                                        {
-                                            var wardSlotSpell = new Spell(wardSlot.SpellSlot,
-                                                LibraryOfAlexandria.GetHitboxDistance(
-                                                    GenericContext.WARD_PLACE_DISTANCE,
-                                                    GenericContext.MY_HERO));
-                                            if (wardSlotSpell.IsInRange(position.To3D()))
-                                            {
-                                                GenericContext.SERVER_INTERACTIONS.Add(
-                                                    new ServerInteraction(new WardUsed(wardSlot),
-                                                        () => wardSlotSpell.Cast(position)));
-                                            }
-                                        }
+                                        action(position, wardSlot);
                                     }
                                 }
                             }
@@ -437,9 +445,14 @@ namespace najsvan
         }
 
         public abstract bool IsWardSpellReady();
-        public abstract bool WardSpellIsInRange(Vector2 position);
+        public abstract float GetWardSpellRange();
         public abstract void WardSpellCast(Vector2 position);
         public abstract bool Condition_WillInterruptSelf(Node node, String stack);
+
+        public bool Condition_WillInterruptAA(Node node, String stack)
+        {
+            return false;
+        }
 
         public bool Condition_IsRecalling(Node node, String stack)
         {
@@ -453,7 +466,7 @@ namespace najsvan
             // heal
             if (GenericContext.summonerHeal.IsReady())
             {
-                var healTarget = LibraryOfAlexandria.FindAllyInDanger(GenericContext.SUMMONER_HEAL_RANGE);
+                var healTarget = Targeting.FindAllyInDanger(GenericContext.SUMMONER_HEAL_RANGE);
                 if (healTarget != null)
                 {
                     GenericContext.SERVER_INTERACTIONS.Add(new ServerInteraction(new SpellCast(),
@@ -463,10 +476,10 @@ namespace najsvan
             }
 
             // mikaels
-            var mikaelsSlot = LibraryOfAlexandria.GetItemSlot(ItemId.Mikaels_Crucible);
+            var mikaelsSlot = LibraryOfAIexandria.GetItemSlot(ItemId.Mikaels_Crucible);
             if (mikaelsSlot != null && mikaelsSlot.SpellSlot.IsReady())
             {
-                var mikaelsTarget = LibraryOfAlexandria.FindAllyInDanger(GenericContext.MIKAELS_RANGE);
+                var mikaelsTarget = Targeting.FindAllyInDanger(GenericContext.MIKAELS_RANGE);
                 if (mikaelsTarget != null)
                 {
                     var mikaelsSpell = new Spell(mikaelsSlot.SpellSlot);
@@ -479,6 +492,7 @@ namespace najsvan
             // ignite
             if (GenericContext.summonerIgnite.IsReady())
             {
+                var igniteTarget = Targeting.FindPriorityTarget(GenericContext.SUMMONER_IGNITE_RANGE, true);
             }
 
             // dfg
@@ -494,20 +508,20 @@ namespace najsvan
 
         public bool Condition_DangerCooldown(Node node, String stack)
         {
-            return LibraryOfAlexandria.GetSecondsSince(GenericContext.lastDanger) < GenericContext.DANGER_COOLDOWN;
+            return LibraryOfAIexandria.GetSecondsSince(GenericContext.lastDanger) < GenericContext.DANGER_COOLDOWN;
         }
 
         public bool Condition_IsInDanger(Node node, String stack)
         {
-            return LibraryOfAlexandria.IsAllyInDanger(GenericContext.MY_HERO);
+            return LibraryOfAIexandria.IsAllyInDanger(GenericContext.MY_HERO);
         }
 
         public void Action_DoIfInDanger(Node node, String stack)
         {
             // flash
-            if (GenericContext.summonerFlash.IsReady() && false)
+            if (GenericContext.summonerFlash.IsReady())
             {
-                var safeFlashPosition = LibraryOfAlexandria.GetNearestSafeFlashPosition();
+                var safeFlashPosition = LibraryOfAIexandria.GetNearestSafeFlashPosition();
                 if (safeFlashPosition.HasValue)
                 {
                     GenericContext.SERVER_INTERACTIONS.Add(new ServerInteraction(new SpellCast(),
@@ -524,9 +538,9 @@ namespace najsvan
 
         public abstract void Action_DoIfNotInDanger(Node node, String stack);
 
-        public bool Condition_IsSafe(Node node, String stack)
+        public bool Condition_IsUnsafe(Node node, String stack)
         {
-            return ProducedContext.IS_MY_HERO_SAFE.Get();
+            return false;
         }
 
         public void Action_MoveToSafety(Node node, String stack)
@@ -550,7 +564,7 @@ namespace najsvan
 
         public bool Condition_IsBuying(Node node, String stack)
         {
-            var nextToBuy = LibraryOfAlexandria.GetNextBuyItemId();
+            var nextToBuy = LibraryOfAIexandria.GetNextBuyItemId();
             return GenericContext.MY_HERO.InShop() && nextToBuy.HasValue &&
                    GenericContext.MY_HERO.GoldCurrent >= nextToBuy.Value.GoldBase &&
                    !GenericContext.MY_HERO.IsDead;
@@ -579,7 +593,7 @@ namespace najsvan
 
         public void Action_MoveToSpawn(Node node, String stack)
         {
-            //LibraryOfAlexandria.SafeMoveToDestination(ProducedContext.ALLY_SPAWN.Get().Position);
+            LibraryOfAIexandria.SafeMoveToDestination(ProducedContext.ALLY_SPAWN.Get().Position);
         }
 
         public bool Condition_IsOnSpawn(Node node, String stack)

@@ -4,12 +4,12 @@
     {
         public delegate void Action();
 
-        public readonly ExpectedChange change;
+        public readonly ServerRequest request;
         public readonly Action serverAction;
 
-        public ServerInteraction(ExpectedChange change, Action serverAction)
+        public ServerInteraction(ServerRequest request, Action serverAction)
         {
-            this.change = change;
+            this.request = request;
             this.serverAction = serverAction;
         }
     }
