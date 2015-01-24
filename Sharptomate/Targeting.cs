@@ -96,7 +96,7 @@ namespace najsvan
                 threatToEmergencyTarget = FindNearestHero(emergencyTarget, false);
             }
 
-            if (LibraryOfAIexandria.GetHitboxDistance(GenericContext.MY_HERO, threatToEmergencyTarget) < range)
+            if (threatToEmergencyTarget.IsValidTarget() && LibraryOfAIexandria.GetHitboxDistance(GenericContext.MY_HERO, threatToEmergencyTarget) < range)
             {
                 return threatToEmergencyTarget;
             }
