@@ -93,12 +93,7 @@ namespace najsvan
                     var start = Drawing.WorldToScreen(GenericContext.MY_HERO.Position);
                     var end = Drawing.WorldToScreen(GenericContext.MY_HERO.Position + worldDirection.To3D());
                     Drawing.DrawLine(start, end, 2, Color.Blue);
-                    Drawing.DrawText(textOffsetX, textOffsetY, Color.LawnGreen,
-                        ((int)sdLength).ToString());
                 }
-
-
-
             }
         }
 
@@ -284,25 +279,8 @@ namespace najsvan
             return Logger.GetLogger(GetType().Name);
         }
 
-        public void Action_DoFirst(Node node, String stack)
+        public void Action_LevelUp(Node node, String stack)
         {
-            // update hero info
-            foreach (var hero in ProducedContext.ALL_HEROES.Get())
-            {
-                var heroInfo = GenericContext.GetHeroInfo(hero);
-                heroInfo.UpdateDirection();
-                heroInfo.UpdateHpHistory();
-                if (heroInfo.IsFocusedByTower())
-                {
-                    var turret = heroInfo.GetFocusedByTower();
-                    if (hero.Distance(turret) > GenericContext.TURRET_RANGE ||
-                        turret.IsDead)
-                    {
-                        heroInfo.SetFocusedByTower(null);
-                    }
-                }
-            }
-
             bTree.OnlyOncePer(500);
 
             // level up
@@ -318,6 +296,11 @@ namespace najsvan
                         GenericContext.MY_HERO.Spellbook.LevelSpell(GenericContext.levelSpellsOrder[abilityLevel]);
                     }));
             }
+        }
+
+        public void Action_Buy(Node node, String stack)
+        {
+            bTree.OnlyOncePer(500);
 
             // buy
             if ((GenericContext.MY_HERO.InShop() || GenericContext.MY_HERO.IsDead))
@@ -370,6 +353,25 @@ namespace najsvan
                 {
                     GenericContext.SERVER_INTERACTIONS.Add(new ServerInteraction(new BuyItem(), () => GenericContext.MY_HERO.BuyItem(GenericContext.shoppingListElixir)));
                     GenericContext.lastElixirBought = GenericContext.currentTick;
+                }
+            }
+        }
+
+        public void Action_Update(Node node, String stack)
+        {
+            // update hero info
+            foreach (var hero in ProducedContext.ALL_HEROES.Get())
+            {
+                var heroInfo = GenericContext.GetHeroInfo(hero);
+                heroInfo.UpdateDirection();
+                heroInfo.UpdateHpHistory();
+                if (heroInfo.IsFocusedByTower())
+                {
+                    var turret = heroInfo.GetFocusedByTower();
+                    if (!(turret.Health > 0) || !turret.IsValid || !turret.IsValid<Obj_AI_Turret>() || turret.IsDead || hero.Distance(turret) > GenericContext.TURRET_RANGE)
+                    {
+                        heroInfo.SetFocusedByTower(null);
+                    }
                 }
             }
         }
