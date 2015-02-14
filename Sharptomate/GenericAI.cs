@@ -105,6 +105,11 @@ namespace najsvan
                 if (hero != null)
                 {
                     GenericContext.GetHeroInfo(hero).SetDirection(hero.Position.To2D(), args.Target.Position.To2D());
+
+                    var spell = args.SData;
+                    if (hero.IsMe && spell != null && spell.IsAutoAttack())
+                    {
+                    }
                 }
             }
 
@@ -174,11 +179,12 @@ namespace najsvan
         {
             if (args.Msg == (ulong)WindowsMessages.WM_KEYDOWN)
             {
-                if (args.WParam == 0x75) // F6 - test shit
+                if (args.WParam.Equals(0x75)) // F6 - test shit
                 {
                     var nextToBuy = LibraryOfAIexandria.GetNextBuyItemId();
                     Game.PrintChat("nextToBuy: " + ((ItemId)nextToBuy.Value.Id));
                     Game.PrintChat("price: " + nextToBuy.Value.GoldBase);
+                    Game.PrintChat("base AP: " + GenericContext.MY_HERO.BaseAbilityDamage);
                 }
             }
         }
@@ -453,7 +459,7 @@ namespace najsvan
 
         public bool Condition_WillInterruptAA(Node node, String stack)
         {
-            return false;
+            return !Orbwalking.CanMove(90);
         }
 
         public bool Condition_IsRecalling(Node node, String stack)
@@ -497,7 +503,6 @@ namespace najsvan
                 var igniteTarget = Targeting.FindPriorityTarget(GenericContext.SUMMONER_IGNITE_RANGE, true);
             }
 
-            // dfg
             // queens
             // locket
             // talisman
@@ -552,7 +557,10 @@ namespace najsvan
 
         public void Action_AutoAttack(Node node, String stack)
         {
-            // orbwalk
+            if (Orbwalking.CanAttack())
+            {
+                var target = Targeting.FindPriorityTarget(LibraryOfAIexandria.GetHitboxDistance((float)GenericContext.MY_HERO.AttackRange, GenericContext.MY_HERO), true);
+            }
         }
 
         public abstract void Action_DoIfSafe(Node node, String stack);

@@ -7,14 +7,14 @@ namespace najsvan
     class Targeting
     {
         private static int WAITING_FOR_BETTER_TARGET_SINCE = 0;
-        private static int WAIT_FOR_BETTER_TARGET_SEC = 3;
+        private const int WAIT_FOR_BETTER_TARGET_SEC = 3;
 
         public class TargetValuePair
         {
             private readonly Obj_AI_Hero target;
-            private readonly int value;
+            private readonly float value;
 
-            public TargetValuePair(Obj_AI_Hero target, int value)
+            public TargetValuePair(Obj_AI_Hero target, float value)
             {
                 this.target = target;
                 this.value = value;
@@ -25,7 +25,7 @@ namespace najsvan
                 return target;
             }
 
-            public int GetValue()
+            public float GetValue()
             {
                 return value;
             }
@@ -33,7 +33,7 @@ namespace najsvan
 
         public enum PriorityMode
         {
-            Default,
+            HighestImpact,
             HighestAp
         }
 
@@ -43,14 +43,14 @@ namespace najsvan
             Disable
         }
 
-        public static Obj_AI_Hero FindAllyInDanger(int range)
+        public static Obj_AI_Hero FindAllyInDanger(float range)
         {
             Obj_AI_Hero lowestHpAlly = null;
             var lowestHp = float.MaxValue;
 
             ProducedContext.ALL_ALLIES.Get().ForEach(ally =>
             {
-                if (LibraryOfAIexandria.GetHitboxDistance(GenericContext.MY_HERO, ally) < range && !ally.InFountain() && !ally.IsDead)
+                if (LibraryOfAIexandria.GetHitboxDistance(GenericContext.MY_HERO, ally) < range && !ally.InFountain())
                 {
                     if (ally.Health < lowestHp && ally.Health > 1 && LibraryOfAIexandria.IsAllyInDanger(ally))
                     {
@@ -62,18 +62,18 @@ namespace najsvan
             return lowestHpAlly;
         }
 
-        public static Obj_AI_Hero FindPriorityTarget(int range, bool unrestricted)
+        public static Obj_AI_Hero FindPriorityTarget(float range, bool unrestricted)
         {
-            return FindPriorityTarget(range, unrestricted, PriorityMode.Default);
+            return FindPriorityTarget(range, unrestricted, PriorityMode.HighestImpact);
         }
 
         public static Obj_AI_Hero FindNearestHero(Obj_AI_Hero hero, bool alliedToHero)
         {
             Obj_AI_Hero result = null;
             var lowestDistance = float.MaxValue;
-            var turretTeamCondition = alliedToHero ? hero.IsAlly : !hero.IsAlly;
-            var heroes = turretTeamCondition ? ProducedContext.ALL_ALLIES.Get() : ProducedContext.ALL_ENEMIES.Get();
-            foreach (var other in heroes)
+            var teamCondition = alliedToHero ? hero.IsAlly : !hero.IsAlly;
+            var heroes = teamCondition ? ProducedContext.ALL_ALLIES.Get() : ProducedContext.ALL_ENEMIES.Get();
+            heroes.ForEach(other =>
             {
                 var distance = other.Distance(hero);
                 if (distance < lowestDistance && other != hero)
@@ -82,12 +82,13 @@ namespace najsvan
                     lowestDistance = distance;
                 }
             }
+            );
             return result;
         }
 
-        public static Obj_AI_Hero FindPriorityTarget(int range, bool unrestricted, PriorityMode mode)
+        public static Obj_AI_Hero FindPriorityTarget(float range, bool spamming, PriorityMode mode)
         {
-            var lowestHpEnemyRange = FindLowestHpTarget(GenericContext.ENEMY_TEAM, false, range);
+            var lowestHpEnemyRange = FindLowestHpEnemy(spamming, range);
             var emergencyTarget = FindAllyInDanger(range);
             Obj_AI_Hero threatToEmergencyTarget = null;
 
@@ -112,51 +113,103 @@ namespace najsvan
 
                 if (mode == PriorityMode.HighestAp)
                 {
-                    attackTarget = FindHighestApTarget(GenericContext.ENEMY_TEAM, false, range);
-                    alternateTarget = FindHighestApTarget(GenericContext.ENEMY_TEAM, false, GenericContext.SCAN_DISTANCE);
-                    if (alternateTarget.GetTarget().IsValid && alternateTarget.GetValue() < 100)
+                    attackTarget = FindHighestApEnemy(spamming, range);
+                    if (!spamming)
                     {
-                        mode = PriorityMode.Default;
-                        attackTarget = null;
-                        alternateTarget = null;
+                        alternateTarget = FindHighestApEnemy(false, GenericContext.SCAN_DISTANCE);
+                        if (alternateTarget.GetTarget().IsValid && alternateTarget.GetValue() < 100)
+                        {
+                            mode = PriorityMode.HighestImpact;
+                            attackTarget = null;
+                            alternateTarget = null;
+                        }
                     }
                 }
 
-                if (mode == PriorityMode.Default)
+                if (mode == PriorityMode.HighestImpact)
                 {
-                    attackTarget = FindHighestImpactTarget(GenericContext.ENEMY_TEAM, unrestricted, range);
-                    alternateTarget = FindHighestImpactTarget(GenericContext.ENEMY_TEAM, unrestricted, GenericContext.SCAN_DISTANCE);
+                    attackTarget = FindHighestImpactEnemy(spamming, range);
+                    if (!spamming)
+                    {
+                        alternateTarget = FindHighestImpactEnemy(false, GenericContext.SCAN_DISTANCE);
+                    }
                 }
 
-                if (attackTarget != null && !attackTarget.GetTarget().Equals(alternateTarget.GetTarget()) && alternateTarget.GetValue() > attackTarget.GetValue() && WAITING_FOR_BETTER_TARGET_SINCE == 0)
+                if (!spamming)
                 {
-                    WAITING_FOR_BETTER_TARGET_SINCE = Environment.TickCount;
-                }
-                if (LibraryOfAIexandria.GetSecondsSince(WAITING_FOR_BETTER_TARGET_SINCE) < WAIT_FOR_BETTER_TARGET_SEC)
-                {
-                    attackTarget = null;
-                }
-                else
-                {
-                    WAITING_FOR_BETTER_TARGET_SINCE = 0;
+                    if (attackTarget != null && !attackTarget.GetTarget().Equals(alternateTarget.GetTarget()) &&
+                        alternateTarget.GetValue() > attackTarget.GetValue() && WAITING_FOR_BETTER_TARGET_SINCE == 0)
+                    {
+                        WAITING_FOR_BETTER_TARGET_SINCE = Environment.TickCount;
+                    }
+                    if (LibraryOfAIexandria.GetSecondsSince(WAITING_FOR_BETTER_TARGET_SINCE) <
+                        WAIT_FOR_BETTER_TARGET_SEC)
+                    {
+                        attackTarget = null;
+                    }
+                    else
+                    {
+                        WAITING_FOR_BETTER_TARGET_SINCE = 0;
+                    }
                 }
                 return attackTarget == null ? null : attackTarget.GetTarget();
             }
         }
 
-        private static TargetValuePair FindHighestImpactTarget(GameObjectTeam team, bool unrestricted, int range)
+        private static TargetValuePair FindHighestImpactEnemy(bool spamming, float range)
         {
-            return null;
+            return FindBestStatEnemy(spamming, range, LibraryOfAIexandria.GetImpact, true);
         }
 
-        private static TargetValuePair FindHighestApTarget(GameObjectTeam team, bool unrestricted, int range)
+        private static TargetValuePair FindHighestApEnemy(bool spamming, float range)
         {
-            return null;
+            return FindBestStatEnemy(spamming, range, enemy => enemy.BaseAbilityDamage, true);
         }
 
-        private static TargetValuePair FindLowestHpTarget(GameObjectTeam team, bool unrestricted, int range)
+        private static TargetValuePair FindLowestHpEnemy(bool spamming, float range)
         {
-            return null;
+            return FindBestStatEnemy(spamming, range, enemy => enemy.Health, false);
+        }
+
+        private delegate float GetStat(Obj_AI_Hero hero);
+
+        private static TargetValuePair FindBestStatEnemy(bool spamming, float range, GetStat function, bool higherIsBetter)
+        {
+            TargetValuePair result = null;
+            float bestStat;
+            if (higherIsBetter)
+            {
+                bestStat = 0f;
+            }
+            else
+            {
+                bestStat = float.MaxValue;
+            }
+            ProducedContext.ALL_ENEMIES.Get().ForEach(enemy =>
+            {
+                var distance = GenericContext.MY_HERO.Distance(enemy);
+                var stat = function(enemy);
+                bool isBestStat;
+                if (higherIsBetter)
+                {
+                    isBestStat = bestStat < stat;
+                }
+                else
+                {
+                    isBestStat = bestStat > stat;
+                }
+                if (distance < range && isBestStat
+                    && (spamming
+                    || LibraryOfAIexandria.GetHeroesInRange(enemy, false, GenericContext.SCAN_DISTANCE / 2).Count > 0
+                    || LibraryOfAIexandria.IsTypicalHpUnder(enemy, GenericContext.FEAR_UNDER_PERCENT))
+                    || GenericContext.MY_HERO.Mana / GenericContext.MY_HERO.MaxMana > 0.5)
+                {
+                    result = new TargetValuePair(enemy, stat);
+                    bestStat = stat;
+                }
+            }
+            );
+            return result;
         }
     }
 }

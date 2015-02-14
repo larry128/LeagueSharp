@@ -192,7 +192,7 @@ namespace najsvan
             {
                 return false;
             }
-            var enemies = GetDangerousEnemiesInRange(ally, GenericContext.SCAN_DISTANCE / 2);
+            var enemies = GetUsefulHeroesInRange(ally, false, GenericContext.SCAN_DISTANCE / 2);
             var dangerHp = IsTypicalHpUnder(ally, GenericContext.DANGER_UNDER_PERCENT);
             var fearHp = IsTypicalHpUnder(ally, GenericContext.FEAR_UNDER_PERCENT);
             var allyInfo = GenericContext.GetHeroInfo(ally);
@@ -244,20 +244,34 @@ namespace najsvan
             return cObject.Distance(bObject) < aCDistance && cObject.Distance(aObject) < aCDistance;
         }
 
-        public static List<Obj_AI_Hero> GetDangerousEnemiesInRange(Obj_AI_Hero ally, int range)
+        public static List<Obj_AI_Hero> GetUsefulHeroesInRange(Obj_AI_Hero hero, bool alliedToHero, int range)
         {
             var result = new List<Obj_AI_Hero>();
-            if (ally != null)
+            var teamCondition = alliedToHero ? hero.IsAlly : !hero.IsAlly;
+            var heroes = teamCondition ? ProducedContext.ALL_ALLIES.Get() : ProducedContext.ALL_ENEMIES.Get();
+            heroes.ForEach(other =>
             {
-                ProducedContext.ALL_ENEMIES.Get().ForEach(enemy =>
+                if (hero.Distance(other) < range && other != hero &&
+                    !other.IsStunned && !other.IsPacified)
                 {
-                    if (!enemy.IsDead && ally.ServerPosition.Distance(enemy.ServerPosition) < range &&
-                        !enemy.IsStunned)
-                    {
-                        result.Add(enemy);
-                    }
-                });
-            }
+                    result.Add(other);
+                }
+            });
+            return result;
+        }
+
+        public static List<Obj_AI_Hero> GetHeroesInRange(Obj_AI_Hero hero, bool alliedToHero, int range)
+        {
+            var result = new List<Obj_AI_Hero>();
+            var teamCondition = alliedToHero ? hero.IsAlly : !hero.IsAlly;
+            var heroes = teamCondition ? ProducedContext.ALL_ALLIES.Get() : ProducedContext.ALL_ENEMIES.Get();
+            heroes.ForEach(other =>
+            {
+                if (hero.Distance(other) < range && other != hero)
+                {
+                    result.Add(other);
+                }
+            });
             return result;
         }
 
@@ -300,6 +314,11 @@ namespace najsvan
                 }
             }
             return result;
+        }
+
+        public static float GetImpact(Obj_AI_Hero hero)
+        {
+            return hero.BaseAbilityDamage + hero.BaseAttackDamage;
         }
     }
 }
