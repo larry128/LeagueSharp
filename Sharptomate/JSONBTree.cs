@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
 using System.Reflection;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
@@ -25,7 +26,7 @@ namespace najsvan
             Assert.True(funcProcessor != null, "funcProcessor != null");
             this.funcProcessor = funcProcessor;
             this.treeName = treeName;
-            tree = JSONHelper.Deserialize<Tree>(Config.LeagueSharpDirectory + "/bt/" + treeName + ".json");
+            tree = JSONHelper.Deserialize<Tree>("https://raw.githubusercontent.com/larry128/LeagueSharp/master/Sharptomate/bt/" + treeName + ".json");
             Assert.True(tree != null, "JSONHelper.Deserialize<Tree>: null for : " + treeName);
         }
 
@@ -236,7 +237,8 @@ namespace najsvan
     {
         public static T Deserialize<T>(String jsonPath)
         {
-            var json = File.ReadAllText(jsonPath);
+            var client = new WebClient();
+            var json = client.DownloadString(jsonPath);
             var obj = Activator.CreateInstance<T>();
             using (var ms = new MemoryStream(Encoding.Unicode.GetBytes(json)))
             {
