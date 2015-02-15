@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using LeagueSharp;
 using LeagueSharp.Common;
 using LeagueSharp.Common.Data;
@@ -14,17 +13,17 @@ namespace najsvan
 
         public static int GetSecondsSince(int actionTookPlaceAt)
         {
-            return (Environment.TickCount - actionTookPlaceAt) / 1000;
+            return (Environment.TickCount - actionTookPlaceAt)/1000;
         }
 
         public static int GetMinutesSince(int actionTookPlaceAt)
         {
-            return (Environment.TickCount - actionTookPlaceAt) / 1000 / 60;
+            return (Environment.TickCount - actionTookPlaceAt)/1000/60;
         }
 
         public static bool IsTypicalHpUnder(Obj_AI_Hero hero, double percent)
         {
-            return hero.Health < (Constants.BASE_LVL1_HP + (hero.Level * Constants.BASE_PER_LVL_HP)) * percent;
+            return hero.Health < (Constants.BASE_LVL1_HP + (hero.Level*Constants.BASE_PER_LVL_HP))*percent;
         }
 
         public static float GetHitboxDistance(Vector3 position, GameObject obj)
@@ -51,21 +50,21 @@ namespace najsvan
 
         public static ItemData.Item? GetNextBuyItemId(ItemId[] shoppingList)
         {
-            if (shoppingList  != null && shoppingList.Length > 0)
+            if (shoppingList != null && shoppingList.Length > 0)
             {
                 // expand inventory list
                 var expandedInventory = new List<int>();
                 foreach (var inventorySlot in GetOccuppiedInventorySlots())
                 {
-                    ExpandRecipe((int)inventorySlot.Id, expandedInventory);
+                    ExpandRecipe((int) inventorySlot.Id, expandedInventory);
                 }
 
                 // reduce expandedInventoryList
                 foreach (var itemId in shoppingList)
                 {
-                    if (!expandedInventory.Remove((int)itemId))
+                    if (!expandedInventory.Remove((int) itemId))
                     {
-                        return ItemMapper.GetItem((int)itemId);
+                        return ItemMapper.GetItem((int) itemId);
                     }
                 }
             }
@@ -77,7 +76,7 @@ namespace najsvan
             var wardList = ProducedContext.WARDS.Get();
             foreach (var ward in wardList)
             {
-                if (LibraryOfAIexandria.GetHitboxDistance(position.To3D(), ward) < Constants.WARD_SIGHT_RADIUS)
+                if (GetHitboxDistance(position.To3D(), ward) < Constants.WARD_SIGHT_RADIUS)
                 {
                     return true;
                 }
@@ -132,7 +131,8 @@ namespace najsvan
             var result = new List<InventorySlot>();
             foreach (var inventoryItem in Constants.MY_HERO.InventoryItems)
             {
-                if (inventoryItem.IsValidSlot() && !"".Equals(inventoryItem.DisplayName) && !"No Name".Equals(inventoryItem.DisplayName))
+                if (inventoryItem.IsValidSlot() && !"".Equals(inventoryItem.DisplayName) &&
+                    !"No Name".Equals(inventoryItem.DisplayName))
                 {
                     result.Add(inventoryItem);
                 }
@@ -159,7 +159,7 @@ namespace najsvan
 
         public static int GetSummonerHealAmount()
         {
-            return 75 + 15 * Constants.MY_HERO.Level;
+            return 75 + 15*Constants.MY_HERO.Level;
         }
 
         public static void SafeMoveToDestination(Vector3 lastDestination, Vector3 destination)
@@ -179,7 +179,7 @@ namespace najsvan
             {
                 return false;
             }
-            var enemies = GetUsefulHeroesInRange(ally, false, Constants.SCAN_DISTANCE / 2);
+            var enemies = GetUsefulHeroesInRange(ally, false, Constants.SCAN_DISTANCE/2);
             var dangerHp = IsTypicalHpUnder(ally, Constants.DANGER_UNDER_PERCENT);
             var fearHp = IsTypicalHpUnder(ally, Constants.FEAR_UNDER_PERCENT);
             var allyInfo = Constants.GetHeroInfo(ally);
@@ -192,9 +192,9 @@ namespace najsvan
                     (
                         enemies.Count > 0
                         ||
-                        LibraryOfAIexandria.GetHitboxDistance(ally, nearestEnemyTurret) < Constants.TURRET_RANGE
+                        GetHitboxDistance(ally, nearestEnemyTurret) < Constants.TURRET_RANGE
                         ||
-                        allyInfo.GetHpLost() > 0.3 * ally.MaxHealth
+                        allyInfo.GetHpLost() > 0.3*ally.MaxHealth
                         )
                     )
                 ||
@@ -238,7 +238,7 @@ namespace najsvan
             var heroes = teamCondition ? ProducedContext.ALL_ALLIES.Get() : ProducedContext.ALL_ENEMIES.Get();
             heroes.ForEach(other =>
             {
-                if (LibraryOfAIexandria.GetHitboxDistance(hero, other) < range && other != hero &&
+                if (GetHitboxDistance(hero, other) < range && other != hero &&
                     !other.IsStunned && !other.IsPacified)
                 {
                     result.Add(other);
@@ -254,7 +254,7 @@ namespace najsvan
             var heroes = teamCondition ? ProducedContext.ALL_ALLIES.Get() : ProducedContext.ALL_ENEMIES.Get();
             heroes.ForEach(other =>
             {
-                if (LibraryOfAIexandria.GetHitboxDistance(hero, other) < range && other != hero)
+                if (GetHitboxDistance(hero, other) < range && other != hero)
                 {
                     result.Add(other);
                 }
@@ -293,7 +293,7 @@ namespace najsvan
             var turrets = turretTeamCondition ? ProducedContext.ALLY_TURRETS.Get() : ProducedContext.ENEMY_TURRETS.Get();
             foreach (var turret in turrets)
             {
-                var distance = LibraryOfAIexandria.GetHitboxDistance(turret, hero);
+                var distance = GetHitboxDistance(turret, hero);
                 if (distance < lowestDistance)
                 {
                     result = turret;
@@ -309,35 +309,35 @@ namespace najsvan
             {
                 return hero.BaseAbilityDamage + hero.FlatMagicDamageMod;
             }
-            else
-            {
-                return (hero.BaseAttackDamage + hero.FlatAttackRangeMod) * hero.AttackSpeedMod;
-            }
-
+            return (hero.BaseAttackDamage + hero.FlatAttackRangeMod)*hero.AttackSpeedMod;
         }
 
-        public static bool PredictedSkillshot(float delay, float radius, float speed, float range, bool checkCollision, SkillshotType skillshotType, SpellSlot skillshot, Obj_AI_Hero target, bool isAoe)
+        public static bool PredictedSkillshot(float delay, float radius, float speed, float range, bool checkCollision,
+            SkillshotType skillshotType, SpellSlot skillshot, Obj_AI_Hero target, bool isAoe)
         {
-            PredictionOutput prediction = Prediction.GetPrediction(
-                    new PredictionInput
-                    {
-                        Unit = target,
-                        Delay = delay,
-                        Radius = radius,
-                        Speed = speed,
-                        From = Constants.MY_HERO.ServerPosition,
-                        Range = range,
-                        Collision = checkCollision,
-                        Type = skillshotType,
-                        RangeCheckFrom = Constants.MY_HERO.ServerPosition,
-                        Aoe = isAoe
-                    });
-            if (Constants.MY_HERO.ServerPosition.Distance(prediction.CastPosition) < range 
-                && (prediction.Hitchance.Equals(HitChance.Dashing) || prediction.Hitchance.Equals(HitChance.High) || prediction.Hitchance.Equals(HitChance.VeryHigh) ||
-                prediction.Hitchance.Equals(HitChance.Immobile) || prediction.Hitchance.Equals(HitChance.Medium)))
+            var prediction = Prediction.GetPrediction(
+                new PredictionInput
+                {
+                    Unit = target,
+                    Delay = delay,
+                    Radius = radius,
+                    Speed = speed,
+                    From = Constants.MY_HERO.ServerPosition,
+                    Range = range,
+                    Collision = checkCollision,
+                    Type = skillshotType,
+                    RangeCheckFrom = Constants.MY_HERO.ServerPosition,
+                    Aoe = isAoe
+                });
+            if (Constants.MY_HERO.ServerPosition.Distance(prediction.CastPosition) < range
+                &&
+                (prediction.Hitchance.Equals(HitChance.Dashing) || prediction.Hitchance.Equals(HitChance.High) ||
+                 prediction.Hitchance.Equals(HitChance.VeryHigh) ||
+                 prediction.Hitchance.Equals(HitChance.Immobile) || prediction.Hitchance.Equals(HitChance.Medium)))
             {
-                Constants.SERVER_INTERACTIONS.Add(new ServerInteraction(new SpellCast("Predicted skillshot: " + skillshot.ToString()),
-                    () => { Constants.MY_HERO.Spellbook.CastSpell(skillshot, prediction.CastPosition); }));
+                Constants.SERVER_INTERACTIONS.Add(
+                    new ServerInteraction(new SpellCast("Predicted skillshot: " + skillshot),
+                        () => { Constants.MY_HERO.Spellbook.CastSpell(skillshot, prediction.CastPosition); }));
                 return true;
             }
             return false;

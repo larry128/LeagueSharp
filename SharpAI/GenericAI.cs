@@ -11,18 +11,17 @@ namespace najsvan
 {
     public abstract class GenericAI
     {
-        private delegate void WardAction(Vector2 position, InventorySlot wardSlot);
-        private readonly JSONBTree bTree;
-        private readonly Menu config;
-        protected int lastElixirBought = 0;
-        protected int lastTickProcessed = 0;
-        protected int lastWardDropped = 0;
         protected int lastDanger = 0;
+        protected Vector3 lastDestination = Vector3.Zero;
+        protected int lastElixirBought;
+        protected int lastTickProcessed;
+        protected int lastWardDropped = 0;
         protected SpellSlot[] levelSpellsOrder;
         protected ItemId[] shoppingList;
         protected Stack<ItemId> shoppingListConsumables;
         protected ItemId shoppingListElixir;
-        protected Vector3 lastDestination = Vector3.Zero;
+        private readonly JSONBTree bTree;
+        private readonly Menu config;
 
         protected GenericAI()
         {
@@ -68,7 +67,8 @@ namespace najsvan
 
         private void GameObject_OnDelete(GameObject sender, EventArgs args)
         {
-            if (sender != null && sender.IsValid && sender.Name != null && sender.Name.ToLower().Contains(Constants.TARGETED_BY_TOWER_OBJ_NAME))
+            if (sender != null && sender.IsValid && sender.Name != null &&
+                sender.Name.ToLower().Contains(Constants.TARGETED_BY_TOWER_OBJ_NAME))
             {
                 Constants.GetHeroInfo(Constants.MY_HERO)
                     .SetFocusedByTower(LibraryOfAIexandria.GetNearestTower(Constants.MY_HERO, false));
@@ -80,7 +80,8 @@ namespace najsvan
 
         private void GameObject_OnCreate(GameObject sender, EventArgs args)
         {
-            if (sender != null && sender.IsValid && sender.Name != null && sender.Name.ToLower().Contains(Constants.TARGETED_BY_TOWER_OBJ_NAME))
+            if (sender != null && sender.IsValid && sender.Name != null &&
+                sender.Name.ToLower().Contains(Constants.TARGETED_BY_TOWER_OBJ_NAME))
             {
                 Constants.GetHeroInfo(Constants.MY_HERO).SetFocusedByTower(null);
             }
@@ -99,11 +100,11 @@ namespace najsvan
                 var worldDirection = Constants.GetHeroInfo(Constants.MY_HERO).GetDirection();
                 Drawing.DrawText(textOffsetX, textOffsetY, Color.Yellow, worldDirection.X + "x" + worldDirection.Y);
 
-                var sdLength = Math.Sqrt(worldDirection.X * worldDirection.X + worldDirection.Y * worldDirection.Y);
+                var sdLength = Math.Sqrt(worldDirection.X*worldDirection.X + worldDirection.Y*worldDirection.Y);
                 const int length = 600;
                 if (sdLength != 0)
                 {
-                    var coefficient = length / (float)sdLength;
+                    var coefficient = length/(float) sdLength;
                     worldDirection *= coefficient;
                     var start = Drawing.WorldToScreen(Constants.MY_HERO.Position);
                     var end = Drawing.WorldToScreen(Constants.MY_HERO.Position + worldDirection.To3D());
@@ -130,13 +131,14 @@ namespace najsvan
 
             if (unit.IsValid<Obj_AI_Turret>() && args.Target.IsValid<Obj_AI_Hero>())
             {
-                Constants.GetHeroInfo((Obj_AI_Hero)args.Target).SetFocusedByTower((Obj_AI_Turret)unit);
+                Constants.GetHeroInfo((Obj_AI_Hero) args.Target).SetFocusedByTower((Obj_AI_Turret) unit);
             }
 
             Obj_AI_Base_OnProcessSpellCast_Hook(unit, args);
         }
 
-        protected abstract void Obj_AI_Base_OnProcessSpellCast_Hook(Obj_AI_Base unit, GameObjectProcessSpellCastEventArgs args);
+        protected abstract void Obj_AI_Base_OnProcessSpellCast_Hook(Obj_AI_Base unit,
+            GameObjectProcessSpellCastEventArgs args);
 
         private void SetupMenu()
         {
@@ -189,14 +191,15 @@ namespace najsvan
 
         private void Game_OnWndProc(WndEventArgs args)
         {
-            if (args.Msg == (ulong)WindowsMessages.WM_KEYDOWN)
+            if (args.Msg == (ulong) WindowsMessages.WM_KEYDOWN)
             {
                 if (args.WParam.Equals(0x75)) // F6 - test shit
                 {
                     var nextToBuy = LibraryOfAIexandria.GetNextBuyItemId(shoppingList);
-                    Game.PrintChat("nextToBuy: " + ((ItemId)nextToBuy.Value.Id));
+                    Game.PrintChat("nextToBuy: " + ((ItemId) nextToBuy.Value.Id));
                     Game.PrintChat("price: " + nextToBuy.Value.GoldBase);
-                    Game.PrintChat("GetOccuppiedInventorySlots: " + LibraryOfAIexandria.GetOccuppiedInventorySlots().Count);
+                    Game.PrintChat("GetOccuppiedInventorySlots: " +
+                                   LibraryOfAIexandria.GetOccuppiedInventorySlots().Count);
                 }
             }
         }
@@ -210,7 +213,7 @@ namespace najsvan
                     Constants.LOG
                         .Error(
                             "Not all serverInteractions processed, pushing tick 50 * GenericAIContext.serverInteractions.Count millis.");
-                    lastTickProcessed += 50 * Constants.SERVER_INTERACTIONS.Count;
+                    lastTickProcessed += 50*Constants.SERVER_INTERACTIONS.Count;
                     return;
                 }
 
@@ -259,7 +262,7 @@ namespace najsvan
             {
                 Constants.LOG
                     .Debug("SERVER_INTERACTIONS.Count: " + Constants.SERVER_INTERACTIONS.Count);
-                var timePerAction = Constants.TICK_DELAY / (Constants.SERVER_INTERACTIONS.Count + 1);
+                var timePerAction = Constants.TICK_DELAY/(Constants.SERVER_INTERACTIONS.Count + 1);
                 var delay = 0;
                 foreach (var interaction in Constants.SERVER_INTERACTIONS)
                 {
@@ -303,10 +306,7 @@ namespace najsvan
             if (Constants.MY_HERO.Level > abilityLevel && abilityLevel < levelSpellsOrder.Length)
             {
                 Constants.SERVER_INTERACTIONS.Add(new ServerInteraction(new SpellLeveledUp(),
-                    () =>
-                    {
-                        Constants.MY_HERO.Spellbook.LevelSpell(levelSpellsOrder[abilityLevel]);
-                    }));
+                    () => { Constants.MY_HERO.Spellbook.LevelSpell(levelSpellsOrder[abilityLevel]); }));
             }
         }
 
@@ -318,19 +318,21 @@ namespace najsvan
             if ((Constants.MY_HERO.InShop() || Constants.MY_HERO.IsDead))
             {
                 var nextToBuy = LibraryOfAIexandria.GetNextBuyItemId(shoppingList);
-                var elixir = ItemMapper.GetItem((int)shoppingListElixir);
+                var elixir = ItemMapper.GetItem((int) shoppingListElixir);
                 // handle initial consumables first
                 if (shoppingListConsumables.Count > 0 && Constants.MY_HERO.Level == 1)
                 {
                     var consumable = shoppingListConsumables.Pop();
-                    var item = ItemMapper.GetItem((int)consumable);
+                    var item = ItemMapper.GetItem((int) consumable);
                     if (item.HasValue && Constants.MY_HERO.GoldCurrent >= item.Value.GoldBase)
-                        Constants.SERVER_INTERACTIONS.Add(new ServerInteraction(new BuyItem(), () => Constants.MY_HERO.BuyItem(consumable)));
+                        Constants.SERVER_INTERACTIONS.Add(new ServerInteraction(new BuyItem(),
+                            () => Constants.MY_HERO.BuyItem(consumable)));
                     return;
                 }
-                else if (nextToBuy.HasValue && Constants.MY_HERO.GoldCurrent >= nextToBuy.Value.GoldBase)
+                if (nextToBuy.HasValue && Constants.MY_HERO.GoldCurrent >= nextToBuy.Value.GoldBase)
                 {
-                    if (LibraryOfAIexandria.GetOccuppiedInventorySlots().Count == 7 && nextToBuy.Value.GoldBase == nextToBuy.Value.GoldPrice)
+                    if (LibraryOfAIexandria.GetOccuppiedInventorySlots().Count == 7 &&
+                        nextToBuy.Value.GoldBase == nextToBuy.Value.GoldPrice)
                     {
                         var wardSlot = LibraryOfAIexandria.GetItemSlot(ItemId.Stealth_Ward);
                         var manaPotSlot = LibraryOfAIexandria.GetItemSlot(ItemId.Mana_Potion);
@@ -354,13 +356,15 @@ namespace najsvan
                     else
                     {
                         Constants.SERVER_INTERACTIONS.Add(new ServerInteraction(new BuyItem(),
-                            () => Constants.MY_HERO.BuyItem((ItemId)nextToBuy.Value.Id)));
+                            () => Constants.MY_HERO.BuyItem((ItemId) nextToBuy.Value.Id)));
                     }
                 }
-                else if (!nextToBuy.HasValue && LibraryOfAIexandria.GetMinutesSince(lastElixirBought) > 3 && elixir.HasValue &&
+                else if (!nextToBuy.HasValue && LibraryOfAIexandria.GetMinutesSince(lastElixirBought) > 3 &&
+                         elixir.HasValue &&
                          Constants.MY_HERO.GoldCurrent >= elixir.Value.GoldBase)
                 {
-                    Constants.SERVER_INTERACTIONS.Add(new ServerInteraction(new BuyItem(), () => Constants.MY_HERO.BuyItem(shoppingListElixir)));
+                    Constants.SERVER_INTERACTIONS.Add(new ServerInteraction(new BuyItem(),
+                        () => Constants.MY_HERO.BuyItem(shoppingListElixir)));
                     lastElixirBought = Environment.TickCount;
                 }
             }
@@ -377,7 +381,8 @@ namespace najsvan
                 if (heroInfo.IsFocusedByTower())
                 {
                     var turret = heroInfo.GetFocusedByTower();
-                    if (!(turret.Health > 0) || !turret.IsValid || !turret.IsValid<Obj_AI_Turret>() || turret.IsDead || LibraryOfAIexandria.GetHitboxDistance(hero, turret) > Constants.TURRET_RANGE)
+                    if (!(turret.Health > 0) || !turret.IsValid || !turret.IsValid<Obj_AI_Turret>() || turret.IsDead ||
+                        LibraryOfAIexandria.GetHitboxDistance(hero, turret) > Constants.TURRET_RANGE)
                     {
                         heroInfo.SetFocusedByTower(null);
                     }
@@ -408,8 +413,8 @@ namespace najsvan
                 else if (wardSlot != null && wardSlot.SpellSlot.IsReady())
                 {
                     if (LibraryOfAIexandria.GetHitboxDistance(
-                            position.To3D(),
-                            Constants.MY_HERO) < Constants.WARD_PLACE_DISTANCE)
+                        position.To3D(),
+                        Constants.MY_HERO) < Constants.WARD_PLACE_DISTANCE)
                     {
                         Constants.SERVER_INTERACTIONS.Add(
                             new ServerInteraction(new WardUsed(wardSlot),
@@ -417,7 +422,6 @@ namespace najsvan
                     }
                 }
             });
-
         }
 
         private void PossibleToWard(WardAction action)
@@ -468,7 +472,7 @@ namespace najsvan
             return Constants.MY_HERO.IsRecalling();
         }
 
-        public abstract void Action_DoRecklesslyButDontInterruptSelf(Node node, String stack);
+        public abstract void Action_DoRecklesslyNoInterrupt(Node node, String stack);
 
         public void Action_RecklessSSAndItems(Node node, String stack)
         {
@@ -504,21 +508,21 @@ namespace najsvan
                 if (igniteTarget != null)
                 {
                     var countOfAlliesNear = LibraryOfAIexandria.GetUsefulHeroesInRange(igniteTarget, false,
-                        Constants.SCAN_DISTANCE / 2).Count;
+                        Constants.SCAN_DISTANCE/2).Count;
                     if (
                         (
-                        LibraryOfAIexandria.IsTypicalHpUnder(igniteTarget, 0.6)
-                        &&
-                        (countOfAlliesNear > 1 || LibraryOfAIexandria.IsTypicalHpUnder(igniteTarget, 0.2))
-                        &&
-                        (countOfAlliesNear < 4 || !LibraryOfAIexandria.IsTypicalHpUnder(igniteTarget, 0.5))
-                        )
+                            LibraryOfAIexandria.IsTypicalHpUnder(igniteTarget, 0.6)
+                            &&
+                            (countOfAlliesNear > 1 || LibraryOfAIexandria.IsTypicalHpUnder(igniteTarget, 0.2))
+                            &&
+                            (countOfAlliesNear < 4 || !LibraryOfAIexandria.IsTypicalHpUnder(igniteTarget, 0.5))
+                            )
                         ||
                         LibraryOfAIexandria.IsTypicalHpUnder(Constants.MY_HERO, Constants.DANGER_UNDER_PERCENT)
                         )
                     {
                         Constants.SERVER_INTERACTIONS.Add(new ServerInteraction(new SpellCast("Summoner Ignite"),
-                            () => { Constants.MY_HERO.Spellbook.CastSpell(Constants.SUMMONER_IGNITE, (GameObject)igniteTarget); }));
+                            () => { Constants.MY_HERO.Spellbook.CastSpell(Constants.SUMMONER_IGNITE, igniteTarget); }));
                         return;
                     }
                 }
@@ -531,7 +535,8 @@ namespace najsvan
                 var queensTarget = Targeting.FindPriorityTarget(Constants.QUEENS_RANGE, false, true);
                 if (queensTarget != null)
                 {
-                    LibraryOfAIexandria.PredictedSkillshot(0, 100, 1200, Constants.QUEENS_RANGE, false, SkillshotType.SkillshotCircle, queensSlot.SpellSlot, queensTarget, true);
+                    LibraryOfAIexandria.PredictedSkillshot(0, 100, 1200, Constants.QUEENS_RANGE, false,
+                        SkillshotType.SkillshotCircle, queensSlot.SpellSlot, queensTarget, true);
                     return;
                 }
             }
@@ -579,7 +584,6 @@ namespace najsvan
                     return;
                 }
             }
- 
         }
 
         public abstract void Action_DoRecklessly(Node node, String stack);
@@ -617,10 +621,7 @@ namespace najsvan
             if (seraphsSlot != null && seraphsSlot.SpellSlot.IsReady())
             {
                 Constants.SERVER_INTERACTIONS.Add(new ServerInteraction(new SpellCast("Seraphs"),
-                    () =>
-                    {
-                        Constants.MY_HERO.Spellbook.CastSpell(seraphsSlot.SpellSlot);
-                    }));
+                    () => { Constants.MY_HERO.Spellbook.CastSpell(seraphsSlot.SpellSlot); }));
             }
         }
 
@@ -644,7 +645,7 @@ namespace najsvan
                 if (target != null)
                 {
                     Constants.SERVER_INTERACTIONS.Add(new ServerInteraction(new AutoAttack(),
-                    () => { Constants.MY_HERO.IssueOrder(GameObjectOrder.AttackUnit, target); }));
+                        () => { Constants.MY_HERO.IssueOrder(GameObjectOrder.AttackUnit, target); }));
                 }
             }
         }
@@ -699,5 +700,7 @@ namespace najsvan
         }
 
         public abstract void Action_Move(Node node, String stack);
+
+        private delegate void WardAction(Vector2 position, InventorySlot wardSlot);
     }
 }

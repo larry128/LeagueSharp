@@ -1,12 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using LeagueSharp.Common.Data;
 
 namespace najsvan
 {
     public class ItemMapper
     {
-        private static readonly Logger LOG = Logger.GetLogger(typeof(ItemMapper).Name);
-
+        private static readonly Logger LOG = Logger.GetLogger(typeof (ItemMapper).Name);
         private static Dictionary<int, ItemData.Item> ITEM_MAP;
 
         public static ItemData.Item? GetItem(int id)
@@ -36,7 +36,7 @@ namespace najsvan
                 {
                     ITEM_MAP.Add(itemId, item);
                 }
-                catch (System.ArgumentException)
+                catch (ArgumentException)
                 {
                     LOG.Error("Already have: " + itemId);
                 }

@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using LeagueSharp;
 using LeagueSharp.Common;
-using SharpDX;
 
 namespace najsvan
 {
@@ -10,12 +9,12 @@ namespace najsvan
     {
         public static readonly Logger LOG = Logger.GetLogger("AI");
         public static readonly HashSet<ServerInteraction> SERVER_INTERACTIONS = new HashSet<ServerInteraction>();
-        public static readonly Obj_AI_Hero MY_HERO = ObjectManager.Player;
-        public static readonly SpellSlot SUMMONER_HEAL = MY_HERO.GetSpellSlot("summonerheal");
-        public static readonly SpellSlot SUMMONER_IGNITE = MY_HERO.GetSpellSlot("summonerdot");
-        public static readonly SpellSlot SUMMONER_FLASH = MY_HERO.GetSpellSlot("summonerflash");
         public static readonly GameObjectTeam ALLY_TEAM = ObjectManager.Player.Team;
-        public static readonly GameObjectTeam ENEMY_TEAM = ObjectManager.Player.Team == GameObjectTeam.Chaos ? GameObjectTeam.Order : GameObjectTeam.Chaos;
+
+        public static readonly GameObjectTeam ENEMY_TEAM = ObjectManager.Player.Team == GameObjectTeam.Chaos
+            ? GameObjectTeam.Order
+            : GameObjectTeam.Chaos;
+
         public static readonly int SCAN_DISTANCE = 1400;
         public static readonly int BASE_PER_LVL_HP = 77;
         public static readonly int BASE_LVL1_HP = 600;
@@ -27,7 +26,7 @@ namespace najsvan
         public static readonly int SUMMONER_IGNITE_RANGE = 600;
         public static readonly int MIKAELS_RANGE = 750;
         public static readonly int QUEENS_RANGE = 750;
-        public static readonly int LOCKET_RANGE = 600; 
+        public static readonly int LOCKET_RANGE = 600;
         public static readonly int TALISMAN_RANGE = 600;
         public static readonly int WARD_SIGHT_RADIUS = 1200;
         public static readonly int TURRET_RANGE = 950;
@@ -84,6 +83,7 @@ namespace najsvan
         };
 
         private static readonly Dictionary<int, HeroInfo> HERO_INFO_DICT = new Dictionary<int, HeroInfo>();
+
         public static HeroInfo GetHeroInfo(Obj_AI_Hero hero)
         {
             HeroInfo result;
@@ -94,5 +94,10 @@ namespace najsvan
             }
             return result;
         }
+
+        public static readonly Obj_AI_Hero MY_HERO = ObjectManager.Player;
+        public static readonly SpellSlot SUMMONER_HEAL = MY_HERO.GetSpellSlot("summonerheal");
+        public static readonly SpellSlot SUMMONER_IGNITE = MY_HERO.GetSpellSlot("summonerdot");
+        public static readonly SpellSlot SUMMONER_FLASH = MY_HERO.GetSpellSlot("summonerflash");
     }
 }

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
 using LeagueSharp;
 using LeagueSharp.Common;
 using SharpDX;
@@ -10,12 +9,12 @@ namespace najsvan
 {
     public class KarthusAI : GenericAI
     {
-        private bool defileOn;
         private const int Q_RANGE = 875;
         private const int W_RANGE = 1000;
-        private const int E_RANGE = 425; 
+        private const int E_RANGE = 425;
         private const int R_RANGE = 50000;
         private const String DEFILE_OBJ_NAME = "karthus_base_e_defile.troy";
+        private bool defileOn;
 
         public KarthusAI()
         {
@@ -49,7 +48,8 @@ namespace najsvan
 
         protected override void GameObject_OnDelete_Hook(GameObject sender, EventArgs args)
         {
-            if (sender != null && sender.IsValid && sender.Name != null && sender.Name.ToLower().Contains(DEFILE_OBJ_NAME))
+            if (sender != null && sender.IsValid && sender.Name != null &&
+                sender.Name.ToLower().Contains(DEFILE_OBJ_NAME))
             {
                 defileOn = false;
             }
@@ -57,13 +57,15 @@ namespace najsvan
 
         protected override void GameObject_OnCreate_Hook(GameObject sender, EventArgs args)
         {
-            if (sender != null && sender.IsValid && sender.Name != null && sender.Name.ToLower().Contains(DEFILE_OBJ_NAME))
+            if (sender != null && sender.IsValid && sender.Name != null &&
+                sender.Name.ToLower().Contains(DEFILE_OBJ_NAME))
             {
                 defileOn = true;
             }
         }
 
-        protected override void Obj_AI_Base_OnProcessSpellCast_Hook(Obj_AI_Base unit, GameObjectProcessSpellCastEventArgs args)
+        protected override void Obj_AI_Base_OnProcessSpellCast_Hook(Obj_AI_Base unit,
+            GameObjectProcessSpellCastEventArgs args)
         {
         }
 
@@ -75,7 +77,8 @@ namespace najsvan
                 var wTarget = Targeting.FindPriorityTarget(W_RANGE, true, true);
                 if (wTarget != null)
                 {
-                    LibraryOfAIexandria.PredictedSkillshot(0.5f, 50, float.MaxValue, W_RANGE, false, SkillshotType.SkillshotCircle, SpellSlot.W, wTarget, true);
+                    LibraryOfAIexandria.PredictedSkillshot(0.5f, 50, float.MaxValue, W_RANGE, false,
+                        SkillshotType.SkillshotCircle, SpellSlot.W, wTarget, true);
                     return;
                 }
             }
@@ -84,7 +87,8 @@ namespace najsvan
                 var qTarget = Targeting.FindPriorityTarget(Q_RANGE, true, true);
                 if (qTarget != null)
                 {
-                    LibraryOfAIexandria.PredictedSkillshot(1, 100, float.MaxValue, Q_RANGE, false, SkillshotType.SkillshotCircle, SpellSlot.Q, qTarget, true);
+                    LibraryOfAIexandria.PredictedSkillshot(1, 100, float.MaxValue, Q_RANGE, false,
+                        SkillshotType.SkillshotCircle, SpellSlot.Q, qTarget, true);
                     return;
                 }
             }
@@ -115,13 +119,11 @@ namespace najsvan
 
         public override bool Condition_WillInterruptSelf(Node node, string stack)
         {
-            // karthus cant really interrupt himself
             return false;
         }
 
-        public override void Action_DoRecklesslyButDontInterruptSelf(Node node, string stack)
+        public override void Action_DoRecklesslyNoInterrupt(Node node, string stack)
         {
-            // karthus cant really interrupt himself
         }
 
         public override void Action_DoRecklessly(Node node, string stack)
@@ -139,7 +141,7 @@ namespace najsvan
                 {
                     Constants.SERVER_INTERACTIONS.Add(new ServerInteraction(new SpellCast("Defile OFF"),
                         () => { Constants.MY_HERO.Spellbook.CastSpell(SpellSlot.E); }));
-                } 
+                }
             }
         }
 
@@ -157,7 +159,8 @@ namespace najsvan
                 var wTarget = Targeting.FindPriorityTarget(W_RANGE, false, false);
                 if (wTarget != null)
                 {
-                    LibraryOfAIexandria.PredictedSkillshot(0.5f, 50, float.MaxValue, W_RANGE, false, SkillshotType.SkillshotCircle, SpellSlot.W, wTarget, true);
+                    LibraryOfAIexandria.PredictedSkillshot(0.5f, 50, float.MaxValue, W_RANGE, false,
+                        SkillshotType.SkillshotCircle, SpellSlot.W, wTarget, true);
                     return;
                 }
             }
@@ -166,7 +169,8 @@ namespace najsvan
                 var qTarget = Targeting.FindPriorityTarget(Q_RANGE, true, false);
                 if (qTarget != null)
                 {
-                    LibraryOfAIexandria.PredictedSkillshot(1, 100, float.MaxValue, Q_RANGE, false, SkillshotType.SkillshotCircle, SpellSlot.Q, qTarget, true);
+                    LibraryOfAIexandria.PredictedSkillshot(1, 100, float.MaxValue, Q_RANGE, false,
+                        SkillshotType.SkillshotCircle, SpellSlot.Q, qTarget, true);
                     return;
                 }
             }
@@ -183,19 +187,21 @@ namespace najsvan
                     var ultiDmg = GetUltiDmg();
                     float minHealth = 0;
                     var closeAllies = LibraryOfAIexandria.GetUsefulHeroesInRange(lowestHPEnemy.GetTarget(), false,
-                        Constants.SCAN_DISTANCE / 2);
-                    if (closeAllies.Count > 0 && closeAllies.First().Health + Constants.BASE_PER_LVL_HP > lowestHPEnemy.GetValue() && !LibraryOfAIexandria.IsTypicalHpUnder(closeAllies.First(), Constants.DANGER_UNDER_PERCENT))
+                        Constants.SCAN_DISTANCE/2);
+                    if (closeAllies.Count > 0 &&
+                        closeAllies.First().Health + Constants.BASE_PER_LVL_HP > lowestHPEnemy.GetValue() &&
+                        !LibraryOfAIexandria.IsTypicalHpUnder(closeAllies.First(), Constants.DANGER_UNDER_PERCENT))
                     {
-                        minHealth = ultiDmg * 2;
+                        minHealth = ultiDmg*2;
                     }
-                    if (lowestHPEnemy.GetTarget().Health > minHealth && lowestHPEnemy.GetTarget().Health < ultiDmg + minHealth)
+                    if (lowestHPEnemy.GetTarget().Health > minHealth &&
+                        lowestHPEnemy.GetTarget().Health < ultiDmg + minHealth)
                     {
                         Constants.SERVER_INTERACTIONS.Add(new ServerInteraction(new SpellCast("Ulti"),
                             () => { Constants.MY_HERO.Spellbook.CastSpell(SpellSlot.R); }));
                     }
                 }
             }
-
         }
 
         public override void Action_Move(Node node, string stack)
@@ -216,7 +222,8 @@ namespace najsvan
             {
                 ultiDamage = 550;
             }
-            return (float)(ultiDamage + (Constants.MY_HERO.FlatMagicDamageMod + Constants.MY_HERO.BaseAbilityDamage) * 0.5);
+            return
+                (float) (ultiDamage + (Constants.MY_HERO.FlatMagicDamageMod + Constants.MY_HERO.BaseAbilityDamage)*0.5);
         }
     }
 }

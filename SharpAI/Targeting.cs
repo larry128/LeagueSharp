@@ -4,31 +4,12 @@ using LeagueSharp.Common;
 
 namespace najsvan
 {
-    class Targeting
+    internal class Targeting
     {
-        private static int WAITING_FOR_BETTER_TARGET_SINCE = 0;
-        private const int WAIT_FOR_BETTER_TARGET_SEC = 3;
-
-        public class TargetValuePair
+        public enum AttackType
         {
-            private readonly Obj_AI_Hero target;
-            private readonly float value;
-
-            public TargetValuePair(Obj_AI_Hero target, float value)
-            {
-                this.target = target;
-                this.value = value;
-            }
-
-            public Obj_AI_Hero GetTarget()
-            {
-                return target;
-            }
-
-            public float GetValue()
-            {
-                return value;
-            }
+            Damage,
+            Disable
         }
 
         public enum PriorityMode
@@ -37,11 +18,8 @@ namespace najsvan
             HighestAp
         }
 
-        public enum AttackType
-        {
-            Damage,
-            Disable
-        }
+        private const int WAIT_FOR_BETTER_TARGET_SEC = 3;
+        private static int WAITING_FOR_BETTER_TARGET_SINCE;
 
         public static Obj_AI_Hero FindAllyInDanger(float range)
         {
@@ -82,7 +60,7 @@ namespace najsvan
                     lowestDistance = distance;
                 }
             }
-            );
+                );
             return result;
         }
 
@@ -97,64 +75,62 @@ namespace najsvan
                 threatToEmergencyTarget = FindNearestHero(emergencyTarget, false);
             }
 
-            if (threatToEmergencyTarget.IsValidTarget() && LibraryOfAIexandria.GetHitboxDistance(Constants.MY_HERO, threatToEmergencyTarget) < range)
+            if (threatToEmergencyTarget.IsValidTarget() &&
+                LibraryOfAIexandria.GetHitboxDistance(Constants.MY_HERO, threatToEmergencyTarget) < range)
             {
                 return threatToEmergencyTarget;
             }
-            else if (lowestHpEnemyRange != null && LibraryOfAIexandria.IsTypicalHpUnder(lowestHpEnemyRange.GetTarget(), Constants.DANGER_UNDER_PERCENT))
+            if (lowestHpEnemyRange != null &&
+                LibraryOfAIexandria.IsTypicalHpUnder(lowestHpEnemyRange.GetTarget(), Constants.DANGER_UNDER_PERCENT))
             {
                 return lowestHpEnemyRange.GetTarget();
             }
-            else
+            TargetValuePair alternateTarget = null;
+            TargetValuePair attackTarget = null;
+
+            if (mode == PriorityMode.HighestAp)
             {
-
-                TargetValuePair alternateTarget = null;
-                TargetValuePair attackTarget = null;
-
-                if (mode == PriorityMode.HighestAp)
+                attackTarget = FindHighestApEnemy(spammable, manaless, range);
+                if (!spammable)
                 {
-                    attackTarget = FindHighestApEnemy(spammable, manaless, range);
-                    if (!spammable)
+                    alternateTarget = FindHighestApEnemy(false, manaless, Constants.SCAN_DISTANCE);
+                    if (alternateTarget.GetTarget().IsValid && alternateTarget.GetValue() < 100)
                     {
-                        alternateTarget = FindHighestApEnemy(false, manaless, Constants.SCAN_DISTANCE);
-                        if (alternateTarget.GetTarget().IsValid && alternateTarget.GetValue() < 100)
-                        {
-                            mode = PriorityMode.HighestImpact;
-                            attackTarget = null;
-                            alternateTarget = null;
-                        }
+                        mode = PriorityMode.HighestImpact;
+                        attackTarget = null;
+                        alternateTarget = null;
                     }
                 }
+            }
 
-                if (mode == PriorityMode.HighestImpact)
-                {
-                    attackTarget = FindHighestImpactEnemy(spammable, manaless, range);
-
-                    if (!spammable)
-                    {
-                        alternateTarget = FindHighestImpactEnemy(false, manaless, Constants.SCAN_DISTANCE);
-                    }
-                }
+            if (mode == PriorityMode.HighestImpact)
+            {
+                attackTarget = FindHighestImpactEnemy(spammable, manaless, range);
 
                 if (!spammable)
                 {
-                    if (attackTarget != null && !attackTarget.GetTarget().Equals(alternateTarget.GetTarget()) &&
-                        alternateTarget.GetValue() > attackTarget.GetValue() && WAITING_FOR_BETTER_TARGET_SINCE == 0)
-                    {
-                        WAITING_FOR_BETTER_TARGET_SINCE = Environment.TickCount;
-                    }
-                    if (LibraryOfAIexandria.GetSecondsSince(WAITING_FOR_BETTER_TARGET_SINCE) <
-                        WAIT_FOR_BETTER_TARGET_SEC)
-                    {
-                        attackTarget = null;
-                    }
-                    else
-                    {
-                        WAITING_FOR_BETTER_TARGET_SINCE = 0;
-                    }
+                    alternateTarget = FindHighestImpactEnemy(false, manaless, Constants.SCAN_DISTANCE);
                 }
-                return attackTarget == null ? null : attackTarget.GetTarget();
             }
+
+            if (!spammable)
+            {
+                if (attackTarget != null && !attackTarget.GetTarget().Equals(alternateTarget.GetTarget()) &&
+                    alternateTarget.GetValue() > attackTarget.GetValue() && WAITING_FOR_BETTER_TARGET_SINCE == 0)
+                {
+                    WAITING_FOR_BETTER_TARGET_SINCE = Environment.TickCount;
+                }
+                if (LibraryOfAIexandria.GetSecondsSince(WAITING_FOR_BETTER_TARGET_SINCE) <
+                    WAIT_FOR_BETTER_TARGET_SEC)
+                {
+                    attackTarget = null;
+                }
+                else
+                {
+                    WAITING_FOR_BETTER_TARGET_SINCE = 0;
+                }
+            }
+            return attackTarget == null ? null : attackTarget.GetTarget();
         }
 
         public static TargetValuePair FindHighestImpactEnemy(bool spammable, bool manaless, float range)
@@ -172,9 +148,8 @@ namespace najsvan
             return FindBestStatEnemy(spammable, manaless, range, enemy => enemy.Health, false);
         }
 
-        private delegate float GetStat(Obj_AI_Hero hero);
-
-        private static TargetValuePair FindBestStatEnemy(bool spammable, bool manaless, float range, GetStat function, bool higherIsBetter)
+        private static TargetValuePair FindBestStatEnemy(bool spammable, bool manaless, float range, GetStat function,
+            bool higherIsBetter)
         {
             TargetValuePair result = null;
             float bestStat;
@@ -207,13 +182,13 @@ namespace najsvan
                         &&
                         (
                             manaless
-                            || 
+                            ||
                             Constants.MY_HERO.Mana/Constants.MY_HERO.MaxMana > 0.5
                         )
                         ||
-                        LibraryOfAIexandria.GetHeroesInRange(enemy, false, Constants.SCAN_DISTANCE / 2).Count > 0
+                        LibraryOfAIexandria.GetHeroesInRange(enemy, false, Constants.SCAN_DISTANCE/2).Count > 0
                         ||
-                        LibraryOfAIexandria.IsTypicalHpUnder(enemy, Constants.DANGER_UNDER_PERCENT)
+                        LibraryOfAIexandria.IsTypicalHpUnder(enemy, Constants.FEAR_UNDER_PERCENT)
                         )
                     )
                 {
@@ -221,8 +196,32 @@ namespace najsvan
                     bestStat = stat;
                 }
             }
-            );
+                );
             return result;
         }
+
+        public class TargetValuePair
+        {
+            private readonly Obj_AI_Hero target;
+            private readonly float value;
+
+            public TargetValuePair(Obj_AI_Hero target, float value)
+            {
+                this.target = target;
+                this.value = value;
+            }
+
+            public Obj_AI_Hero GetTarget()
+            {
+                return target;
+            }
+
+            public float GetValue()
+            {
+                return value;
+            }
+        }
+
+        private delegate float GetStat(Obj_AI_Hero hero);
     }
 }

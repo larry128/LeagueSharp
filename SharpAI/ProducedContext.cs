@@ -9,7 +9,7 @@ namespace najsvan
         public static void Clear()
         {
             var fields = typeof (ProducedContext).GetFields();
-            int counter = 0;
+            var counter = 0;
             foreach (var field in fields)
             {
                 var prod = field.GetValue(null);
@@ -28,7 +28,7 @@ namespace najsvan
         private static List<Obj_AI_Hero> Producer_AllAllies()
         {
             var result = new List<Obj_AI_Hero>();
-            ALL_HEROES.Get().ForEach(hero => {if (hero.IsAlly) result.Add(hero);});
+            ALL_HEROES.Get().ForEach(hero => { if (hero.IsAlly) result.Add(hero); });
             return result;
         }
 
@@ -41,27 +41,37 @@ namespace najsvan
 
         private static List<Obj_AI_Hero> Producer_AllHeroes()
         {
-            return LibraryOfAIexandria.ProcessEachGameObject<Obj_AI_Hero>(hero => !hero.IsDead && hero.IsValid && hero.IsVisible);
+            return
+                LibraryOfAIexandria.ProcessEachGameObject<Obj_AI_Hero>(
+                    hero => !hero.IsDead && hero.IsValid && hero.IsVisible);
         }
 
         private static List<Obj_AI_Turret> Producer_AllyTurrets()
         {
-            return LibraryOfAIexandria.ProcessEachGameObject<Obj_AI_Turret>(turret => turret.IsAlly && !turret.IsDead && turret.IsValid && turret.IsVisible);
+            return
+                LibraryOfAIexandria.ProcessEachGameObject<Obj_AI_Turret>(
+                    turret => turret.IsAlly && !turret.IsDead && turret.IsValid && turret.IsVisible);
         }
 
         private static List<Obj_AI_Turret> Producer_EnemyTurrets()
         {
-            return LibraryOfAIexandria.ProcessEachGameObject<Obj_AI_Turret>(turret => !turret.IsAlly && !turret.IsDead && turret.IsValid && turret.IsVisible);
+            return
+                LibraryOfAIexandria.ProcessEachGameObject<Obj_AI_Turret>(
+                    turret => !turret.IsAlly && !turret.IsDead && turret.IsValid && turret.IsVisible);
         }
 
         private static Obj_SpawnPoint Producer_AllySpawn()
         {
-            return LibraryOfAIexandria.ProcessEachGameObject<Obj_SpawnPoint>(spawn => spawn.IsAlly && spawn.IsValid).First();
+            return
+                LibraryOfAIexandria.ProcessEachGameObject<Obj_SpawnPoint>(spawn => spawn.IsAlly && spawn.IsValid)
+                    .First();
         }
 
         private static Obj_SpawnPoint Producer_EnemySpawn()
         {
-            return LibraryOfAIexandria.ProcessEachGameObject<Obj_SpawnPoint>(spawn => !spawn.IsAlly && spawn.IsValid).First();
+            return
+                LibraryOfAIexandria.ProcessEachGameObject<Obj_SpawnPoint>(spawn => !spawn.IsAlly && spawn.IsValid)
+                    .First();
         }
 
         public static readonly Produced<List<GameObject>> WARDS = new Produced<List<GameObject>>(Producer_Wards);

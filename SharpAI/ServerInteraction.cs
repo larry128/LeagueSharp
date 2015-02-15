@@ -17,7 +17,7 @@
         {
             try
             {
-                return ((ServerInteraction) obj).request.ToString().Equals(this.request.ToString());
+                return ((ServerInteraction) obj).request.ToString().Equals(request.ToString());
             }
             catch
             {

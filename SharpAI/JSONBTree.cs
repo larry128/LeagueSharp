@@ -8,7 +8,6 @@ using System.Runtime.Serialization.Json;
 using System.Text;
 using System.Threading;
 using LeagueSharp;
-using LeagueSharp.Common;
 
 namespace najsvan
 {
@@ -28,7 +27,9 @@ namespace najsvan
             Assert.True(funcProcessor != null, "funcProcessor != null");
             this.funcProcessor = funcProcessor;
             this.treeName = treeName;
-            tree = JSONHelper.Deserialize<Tree>("https://raw.githubusercontent.com/larry128/LeagueSharp/master/SharpAI/bt/" + treeName + ".json");
+            tree =
+                JSONHelper.Deserialize<Tree>(
+                    "https://raw.githubusercontent.com/larry128/LeagueSharp/master/SharpAI/bt/" + treeName + ".json");
             Assert.True(tree != null, "JSONHelper.Deserialize<Tree>: null for : " + treeName);
         }
 
@@ -239,19 +240,19 @@ namespace najsvan
     {
         public static T Deserialize<T>(String jsonPath)
         {
-            int retryCount = 5;
+            var retryCount = 5;
             while (true)
             {
                 retryCount--;
                 try
                 {
                     var client = new WebClient();
-                    String json = client.DownloadString(jsonPath);
+                    var json = client.DownloadString(jsonPath);
                     var obj = Activator.CreateInstance<T>();
                     using (var ms = new MemoryStream(Encoding.Unicode.GetBytes(json)))
                     {
                         var serializer = new DataContractJsonSerializer(obj.GetType());
-                        obj = (T)serializer.ReadObject(ms);
+                        obj = (T) serializer.ReadObject(ms);
                         ms.Close();
                         ms.Dispose();
                         return obj;
@@ -263,8 +264,8 @@ namespace najsvan
                     {
                         throw ex;
                     }
-                    Game.PrintChat("Retrying to load JSONBTree");
-                    Thread.Sleep(2000);
+                    Game.PrintChat("Trying to read JSONBTree");
+                    Thread.Sleep(4000);
                     // try again
                 }
             }

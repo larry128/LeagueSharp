@@ -28,7 +28,7 @@ namespace najsvan
 
         public float GetHpLost()
         {
-            var hpLastTick = (float)hpHistory.Peek();
+            var hpLastTick = (float) hpHistory.Peek();
             return hpLastTick - GetRealHero().Health;
         }
 
