@@ -12,5 +12,22 @@
             this.request = request;
             this.serverAction = serverAction;
         }
+
+        public override bool Equals(object obj)
+        {
+            try
+            {
+                return ((ServerInteraction) obj).request.ToString().Equals(this.request.ToString());
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public override int GetHashCode()
+        {
+            return request.ToString().GetHashCode();
+        }
     }
 }

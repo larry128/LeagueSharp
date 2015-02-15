@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using LeagueSharp;
 using LeagueSharp.Common;
+using LeagueSharp.Common.Data;
 using SharpDX;
 
 namespace najsvan
@@ -13,22 +14,22 @@ namespace najsvan
 
         public static int GetSecondsSince(int actionTookPlaceAt)
         {
-            return (GenericContext.currentTick - actionTookPlaceAt) / 1000;
+            return (Environment.TickCount - actionTookPlaceAt) / 1000;
         }
 
         public static int GetMinutesSince(int actionTookPlaceAt)
         {
-            return (GenericContext.currentTick - actionTookPlaceAt) / 1000 / 60;
+            return (Environment.TickCount - actionTookPlaceAt) / 1000 / 60;
         }
 
         public static bool IsTypicalHpUnder(Obj_AI_Hero hero, double percent)
         {
-            return hero.Health < (GenericContext.BASE_LVL1_HP + (hero.Level * GenericContext.BASE_PER_LVL_HP)) * percent;
+            return hero.Health < (Constants.BASE_LVL1_HP + (hero.Level * Constants.BASE_PER_LVL_HP)) * percent;
         }
 
-        public static float GetHitboxDistance(float distance, GameObject obj)
+        public static float GetHitboxDistance(Vector3 position, GameObject obj)
         {
-            return distance + obj.BoundingRadius + 40;
+            return position.Distance(obj.Position) + obj.BoundingRadius + 40;
         }
 
         public static float GetHitboxDistance(Obj_AI_Base obj, Obj_AI_Base obj2)
@@ -38,7 +39,7 @@ namespace najsvan
 
         public static InventorySlot GetItemSlot(ItemId itemId)
         {
-            foreach (var inventorySlot in GenericContext.MY_HERO.InventoryItems)
+            foreach (var inventorySlot in Constants.MY_HERO.InventoryItems)
             {
                 if (inventorySlot.Id == itemId)
                 {
@@ -48,9 +49,9 @@ namespace najsvan
             return null;
         }
 
-        public static LeagueSharp.Common.Data.ItemData.Item? GetNextBuyItemId()
+        public static ItemData.Item? GetNextBuyItemId(ItemId[] shoppingList)
         {
-            if (GenericContext.shoppingList.Length > 0)
+            if (shoppingList  != null && shoppingList.Length > 0)
             {
                 // expand inventory list
                 var expandedInventory = new List<int>();
@@ -60,7 +61,7 @@ namespace najsvan
                 }
 
                 // reduce expandedInventoryList
-                foreach (var itemId in GenericContext.shoppingList)
+                foreach (var itemId in shoppingList)
                 {
                     if (!expandedInventory.Remove((int)itemId))
                     {
@@ -76,7 +77,7 @@ namespace najsvan
             var wardList = ProducedContext.WARDS.Get();
             foreach (var ward in wardList)
             {
-                if (position.Distance(ward.Position) < GenericContext.WARD_SIGHT_RADIUS)
+                if (LibraryOfAIexandria.GetHitboxDistance(position.To3D(), ward) < Constants.WARD_SIGHT_RADIUS)
                 {
                     return true;
                 }
@@ -87,54 +88,38 @@ namespace najsvan
         public static InventorySlot GetWardSlot()
         {
             InventorySlot ward;
-            var wardsUsed = new List<InventorySlot>();
 
-            GenericContext.SERVER_INTERACTIONS.ForEach(interaction =>
-            {
-                var wardUsed = interaction.request as WardUsed;
-                if (wardUsed != null)
-                {
-                    wardsUsed.Add(wardUsed.wardSlot);
-                }
-            });
-
-            if ((ward = GetItemSlot(ItemId.Warding_Totem_Trinket)) != null && ward.SpellSlot.IsReady() &&
-                !wardsUsed.Contains(ward))
+            if ((ward = GetItemSlot(ItemId.Warding_Totem_Trinket)) != null && ward.SpellSlot.IsReady())
             {
                 return ward;
             }
 
-            if ((ward = GetItemSlot(ItemId.Greater_Stealth_Totem_Trinket)) != null && ward.SpellSlot.IsReady() &&
-                !wardsUsed.Contains(ward))
+            if ((ward = GetItemSlot(ItemId.Greater_Stealth_Totem_Trinket)) != null && ward.SpellSlot.IsReady())
             {
                 return ward;
             }
 
-            if ((ward = GetItemSlot(ItemId.Stealth_Ward)) != null && ward.SpellSlot.IsReady() &&
-                !wardsUsed.Contains(ward))
+            if ((ward = GetItemSlot(ItemId.Stealth_Ward)) != null && ward.SpellSlot.IsReady())
             {
                 return ward;
             }
 
-            if ((ward = GetItemSlot(ItemId.Sightstone)) != null && ward.SpellSlot.IsReady() && !wardsUsed.Contains(ward))
+            if ((ward = GetItemSlot(ItemId.Sightstone)) != null && ward.SpellSlot.IsReady())
             {
                 return ward;
             }
 
-            if ((ward = GetItemSlot(ItemId.Ruby_Sightstone)) != null && ward.SpellSlot.IsReady() &&
-                !wardsUsed.Contains(ward))
+            if ((ward = GetItemSlot(ItemId.Ruby_Sightstone)) != null && ward.SpellSlot.IsReady())
             {
                 return ward;
             }
 
-            if ((ward = GetItemSlot(ItemId.Vision_Ward)) != null && ward.SpellSlot.IsReady() &&
-                !wardsUsed.Contains(ward))
+            if ((ward = GetItemSlot(ItemId.Vision_Ward)) != null && ward.SpellSlot.IsReady())
             {
                 return ward;
             }
 
-            if ((ward = GetItemSlot(ItemId.Greater_Vision_Totem_Trinket)) != null && ward.SpellSlot.IsReady() &&
-                !wardsUsed.Contains(ward))
+            if ((ward = GetItemSlot(ItemId.Greater_Vision_Totem_Trinket)) != null && ward.SpellSlot.IsReady())
             {
                 return ward;
             }
@@ -145,9 +130,9 @@ namespace najsvan
         public static List<InventorySlot> GetOccuppiedInventorySlots()
         {
             var result = new List<InventorySlot>();
-            foreach (var inventoryItem in GenericContext.MY_HERO.InventoryItems)
+            foreach (var inventoryItem in Constants.MY_HERO.InventoryItems)
             {
-                if (!"".Equals(inventoryItem.DisplayName))
+                if (inventoryItem.IsValidSlot() && !"".Equals(inventoryItem.DisplayName) && !"No Name".Equals(inventoryItem.DisplayName))
                 {
                     result.Add(inventoryItem);
                 }
@@ -157,32 +142,34 @@ namespace najsvan
 
         public static void ExpandRecipe(int itemId, List<int> into)
         {
-            @into.Add(itemId);
             var item = ItemMapper.GetItem(itemId);
-            if (item.HasValue && item.Value.From != null && item.Value.From.Length > 0)
+            if (item.HasValue)
             {
-                var recipe = item.Value.From;
-                @into.AddRange(recipe);
-                foreach (var id in recipe)
+                if (item.Value.From != null && item.Value.From.Length > 0)
                 {
-                    ExpandRecipe(id, @into);
+                    var recipe = item.Value.From;
+                    foreach (var id in recipe)
+                    {
+                        ExpandRecipe(id, @into);
+                    }
                 }
+                @into.Add(itemId);
             }
         }
 
         public static int GetSummonerHealAmount()
         {
-            return 75 + 15 * GenericContext.MY_HERO.Level;
+            return 75 + 15 * Constants.MY_HERO.Level;
         }
 
-        public static void SafeMoveToDestination(Vector3 destination)
+        public static void SafeMoveToDestination(Vector3 lastDestination, Vector3 destination)
         {
             if (destination.IsValid() &&
-                (!GenericContext.MY_HERO.IsMoving ||
-                 destination.Distance(GenericContext.lastDestination) > GenericContext.MY_HERO.BoundingRadius))
+                (!Constants.MY_HERO.IsMoving ||
+                 destination.Distance(lastDestination) > Constants.MY_HERO.BoundingRadius))
             {
-                GenericContext.SERVER_INTERACTIONS.Add(new ServerInteraction(new MovingTo(destination),
-                    () => { GenericContext.MY_HERO.IssueOrder(GameObjectOrder.MoveTo, destination); }));
+                Constants.SERVER_INTERACTIONS.Add(new ServerInteraction(new MovingTo(destination),
+                    () => { Constants.MY_HERO.IssueOrder(GameObjectOrder.MoveTo, destination); }));
             }
         }
 
@@ -192,10 +179,10 @@ namespace najsvan
             {
                 return false;
             }
-            var enemies = GetUsefulHeroesInRange(ally, false, GenericContext.SCAN_DISTANCE / 2);
-            var dangerHp = IsTypicalHpUnder(ally, GenericContext.DANGER_UNDER_PERCENT);
-            var fearHp = IsTypicalHpUnder(ally, GenericContext.FEAR_UNDER_PERCENT);
-            var allyInfo = GenericContext.GetHeroInfo(ally);
+            var enemies = GetUsefulHeroesInRange(ally, false, Constants.SCAN_DISTANCE / 2);
+            var dangerHp = IsTypicalHpUnder(ally, Constants.DANGER_UNDER_PERCENT);
+            var fearHp = IsTypicalHpUnder(ally, Constants.FEAR_UNDER_PERCENT);
+            var allyInfo = Constants.GetHeroInfo(ally);
             var nearestEnemyTurret = GetNearestTower(ally, false);
 
             return
@@ -205,7 +192,7 @@ namespace najsvan
                     (
                         enemies.Count > 0
                         ||
-                        ally.Distance(nearestEnemyTurret) < GenericContext.TURRET_RANGE
+                        LibraryOfAIexandria.GetHitboxDistance(ally, nearestEnemyTurret) < Constants.TURRET_RANGE
                         ||
                         allyInfo.GetHpLost() > 0.3 * ally.MaxHealth
                         )
@@ -220,7 +207,7 @@ namespace najsvan
 
         public static bool IsHeroSafe(Obj_AI_Hero hero)
         {
-            var hisSpawn = hero.Team == GenericContext.ALLY_TEAM
+            var hisSpawn = hero.Team == Constants.ALLY_TEAM
                 ? ProducedContext.ALLY_SPAWN
                 : ProducedContext.ENEMY_SPAWN;
             if (hero.IsZombie || hero.IsDead || hero.Distance(hisSpawn.Get()) < hero.BoundingRadius)
@@ -251,7 +238,7 @@ namespace najsvan
             var heroes = teamCondition ? ProducedContext.ALL_ALLIES.Get() : ProducedContext.ALL_ENEMIES.Get();
             heroes.ForEach(other =>
             {
-                if (hero.Distance(other) < range && other != hero &&
+                if (LibraryOfAIexandria.GetHitboxDistance(hero, other) < range && other != hero &&
                     !other.IsStunned && !other.IsPacified)
                 {
                     result.Add(other);
@@ -267,7 +254,7 @@ namespace najsvan
             var heroes = teamCondition ? ProducedContext.ALL_ALLIES.Get() : ProducedContext.ALL_ENEMIES.Get();
             heroes.ForEach(other =>
             {
-                if (hero.Distance(other) < range && other != hero)
+                if (LibraryOfAIexandria.GetHitboxDistance(hero, other) < range && other != hero)
                 {
                     result.Add(other);
                 }
@@ -301,12 +288,12 @@ namespace najsvan
         public static Obj_AI_Turret GetNearestTower(Obj_AI_Hero hero, bool alliedToHero)
         {
             Obj_AI_Turret result = null;
-            var lowestDistance = float.MaxValue;
+            var lowestDistance = Single.MaxValue;
             var turretTeamCondition = alliedToHero ? hero.IsAlly : !hero.IsAlly;
             var turrets = turretTeamCondition ? ProducedContext.ALLY_TURRETS.Get() : ProducedContext.ENEMY_TURRETS.Get();
             foreach (var turret in turrets)
             {
-                var distance = turret.Distance(hero);
+                var distance = LibraryOfAIexandria.GetHitboxDistance(turret, hero);
                 if (distance < lowestDistance)
                 {
                     result = turret;
@@ -318,7 +305,39 @@ namespace najsvan
 
         public static float GetImpact(Obj_AI_Hero hero)
         {
-            return hero.BaseAbilityDamage + hero.BaseAttackDamage;
+            if (hero.FlatMagicDamageMod > hero.FlatAttackRangeMod)
+            {
+                return hero.BaseAbilityDamage + hero.FlatMagicDamageMod;
+            }
+            else
+            {
+                return (hero.BaseAttackDamage + hero.FlatAttackRangeMod) * hero.AttackSpeedMod;
+            }
+
+        }
+
+        public static void PredictedSkillshot(float delay, float radius, float speed, float range, bool checkCollision, SkillshotType skillshotType, SpellSlot skillshot, Obj_AI_Hero target, bool isAoe)
+        {
+            PredictionOutput prediction = Prediction.GetPrediction(
+                    new PredictionInput
+                    {
+                        Unit = target,
+                        Delay = delay,
+                        Radius = radius,
+                        Speed = speed,
+                        From = Constants.MY_HERO.ServerPosition,
+                        Range = range,
+                        Collision = checkCollision,
+                        Type = skillshotType,
+                        RangeCheckFrom = Constants.MY_HERO.ServerPosition,
+                        Aoe = isAoe
+                    });
+            if (prediction.Hitchance.Equals(HitChance.High) || prediction.Hitchance.Equals(HitChance.VeryHigh) ||
+                prediction.Hitchance.Equals(HitChance.Immobile) || prediction.Hitchance.Equals(HitChance.Medium))
+            {
+                Constants.SERVER_INTERACTIONS.Add(new ServerInteraction(new SpellCast(),
+                    () => { Constants.MY_HERO.Spellbook.CastSpell(skillshot, prediction.CastPosition); }));
+            }
         }
     }
 }

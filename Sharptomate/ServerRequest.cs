@@ -31,6 +31,10 @@ namespace najsvan
     {
     }
 
+    public class AutoAttack : ServerRequest
+    {
+    }
+
     public class MovingTo : ServerRequest
     {
         public readonly Vector3 destination;

@@ -1,27 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
 using LeagueSharp;
+using LeagueSharp.Common;
 using SharpDX;
 
 namespace najsvan
 {
-    public static class GenericContext
+    public static class Constants
     {
-        public static int currentTick = 0;
-        public static int lastElixirBought = 0;
-        public static int lastTickProcessed = 0;
-        public static int lastWardDropped = 0;
-        public static int lastDanger = 0;
-        public static SpellSlot[] levelSpellsOrder;
-        public static ItemId[] shoppingList;
-        public static ItemId[] shoppingListConsumables;
-        public static ItemId shoppingListElixir;
-        public static SpellSlot summonerHeal;
-        public static SpellSlot summonerIgnite;
-        public static SpellSlot summonerFlash;
-        public static Vector3 lastDestination = Vector3.Zero;
-        public static readonly List<ServerInteraction> SERVER_INTERACTIONS = new List<ServerInteraction>();
+        public static readonly Logger LOG = Logger.GetLogger("AI");
+        public static readonly HashSet<ServerInteraction> SERVER_INTERACTIONS = new HashSet<ServerInteraction>();
         public static readonly Obj_AI_Hero MY_HERO = ObjectManager.Player;
+        public static readonly SpellSlot SUMMONER_HEAL = MY_HERO.GetSpellSlot("summonerheal");
+        public static readonly SpellSlot SUMMONER_IGNITE = MY_HERO.GetSpellSlot("summonerflash");
+        public static readonly SpellSlot SUMMONER_FLASH = MY_HERO.GetSpellSlot("summonerdot");
         public static readonly GameObjectTeam ALLY_TEAM = ObjectManager.Player.Team;
         public static readonly GameObjectTeam ENEMY_TEAM = ObjectManager.Player.Team == GameObjectTeam.Chaos ? GameObjectTeam.Order : GameObjectTeam.Chaos;
         public static readonly int SCAN_DISTANCE = 1400;
@@ -29,11 +21,12 @@ namespace najsvan
         public static readonly int BASE_LVL1_HP = 600;
         public static readonly double FEAR_UNDER_PERCENT = 0.5;
         public static readonly double DANGER_UNDER_PERCENT = 0.25;
-        public static readonly int TICK_DELAY = 100;
+        public static readonly int TICK_DELAY = 50;
         public static readonly int WARD_PLACE_DISTANCE = 600;
         public static readonly int SUMMONER_HEAL_RANGE = 700;
         public static readonly int SUMMONER_IGNITE_RANGE = 600;
         public static readonly int MIKAELS_RANGE = 750;
+        public static readonly int QUEENS_RANGE = 750;
         public static readonly int WARD_SIGHT_RADIUS = 1200;
         public static readonly int TURRET_RANGE = 950;
         public static readonly int DANGER_COOLDOWN = 3;
@@ -89,7 +82,6 @@ namespace najsvan
         };
 
         private static readonly Dictionary<int, HeroInfo> HERO_INFO_DICT = new Dictionary<int, HeroInfo>();
-
         public static HeroInfo GetHeroInfo(Obj_AI_Hero hero)
         {
             HeroInfo result;

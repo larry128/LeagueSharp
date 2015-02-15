@@ -1,4 +1,5 @@
-﻿using LeagueSharp;
+﻿using System.Collections.Generic;
+using LeagueSharp;
 using SharpDX;
 
 namespace najsvan
@@ -7,14 +8,14 @@ namespace najsvan
     {
         public KarthusAI()
         {
-            GenericContext.levelSpellsOrder = new[]
+            levelSpellsOrder = new[]
             {
                 SpellSlot.Q, SpellSlot.W, SpellSlot.E, SpellSlot.Q, SpellSlot.Q, SpellSlot.R, SpellSlot.Q, SpellSlot.W,
                 SpellSlot.Q, SpellSlot.W, SpellSlot.R, SpellSlot.W, SpellSlot.E, SpellSlot.W, SpellSlot.E, SpellSlot.R,
                 SpellSlot.E, SpellSlot.E
             };
 
-            GenericContext.shoppingList = new[]
+            shoppingList = new[]
             {
                 ItemId.Warding_Totem_Trinket, ItemId.Spellthiefs_Edge, ItemId.Frostfang, ItemId.Faerie_Charm,
                 ItemId.Faerie_Charm, ItemId.Ruby_Crystal, ItemId.Null_Magic_Mantle, ItemId.Chalice_of_Harmony,
@@ -25,9 +26,12 @@ namespace najsvan
                 ItemId.Giants_Belt, ItemId.Rylais_Crystal_Scepter, ItemId.Sorcerers_Shoes_Enchantment_Homeguard
             };
 
-            GenericContext.shoppingListConsumables = new[] {ItemId.Stealth_Ward, ItemId.Mana_Potion};
+            shoppingListConsumables = new Stack<ItemId>();
+            shoppingListConsumables.Push(ItemId.Stealth_Ward); 
+            shoppingListConsumables.Push(ItemId.Mana_Potion); 
+            shoppingListConsumables.Push(ItemId.Mana_Potion);
 
-            GenericContext.shoppingListElixir = ItemId.Elixir_of_Sorcery;
+            shoppingListElixir = ItemId.Elixir_of_Sorcery;
 
             Game.PrintChat(GetType().Name + " - Loaded");
         }

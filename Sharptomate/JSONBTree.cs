@@ -6,6 +6,8 @@ using System.Reflection;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.Text;
+using System.Threading;
+using LeagueSharp;
 using LeagueSharp.Common;
 
 namespace najsvan
@@ -237,16 +239,34 @@ namespace najsvan
     {
         public static T Deserialize<T>(String jsonPath)
         {
-            var client = new WebClient();
-            var json = client.DownloadString(jsonPath);
-            var obj = Activator.CreateInstance<T>();
-            using (var ms = new MemoryStream(Encoding.Unicode.GetBytes(json)))
+            int retryCount = 5;
+            while (true)
             {
-                var serializer = new DataContractJsonSerializer(obj.GetType());
-                obj = (T) serializer.ReadObject(ms);
-                ms.Close();
-                ms.Dispose();
-                return obj;
+                retryCount--;
+                try
+                {
+                    var client = new WebClient();
+                    String json = client.DownloadString(jsonPath);
+                    var obj = Activator.CreateInstance<T>();
+                    using (var ms = new MemoryStream(Encoding.Unicode.GetBytes(json)))
+                    {
+                        var serializer = new DataContractJsonSerializer(obj.GetType());
+                        obj = (T)serializer.ReadObject(ms);
+                        ms.Close();
+                        ms.Dispose();
+                        return obj;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    if (retryCount == 0)
+                    {
+                        throw ex;
+                    }
+                    Game.PrintChat("Retrying to load JSONBTree");
+                    Thread.Sleep(2000);
+                    // try again
+                }
             }
         }
     }

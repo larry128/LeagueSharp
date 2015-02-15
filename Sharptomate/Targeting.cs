@@ -50,7 +50,7 @@ namespace najsvan
 
             ProducedContext.ALL_ALLIES.Get().ForEach(ally =>
             {
-                if (LibraryOfAIexandria.GetHitboxDistance(GenericContext.MY_HERO, ally) < range && !ally.InFountain())
+                if (LibraryOfAIexandria.GetHitboxDistance(Constants.MY_HERO, ally) < range && !ally.InFountain())
                 {
                     if (ally.Health < lowestHp && ally.Health > 1 && LibraryOfAIexandria.IsAllyInDanger(ally))
                     {
@@ -62,9 +62,9 @@ namespace najsvan
             return lowestHpAlly;
         }
 
-        public static Obj_AI_Hero FindPriorityTarget(float range, bool unrestricted)
+        public static Obj_AI_Hero FindPriorityTarget(float range, bool spammable, bool manaless)
         {
-            return FindPriorityTarget(range, unrestricted, PriorityMode.HighestImpact);
+            return FindPriorityTarget(range, spammable, manaless, PriorityMode.HighestImpact);
         }
 
         public static Obj_AI_Hero FindNearestHero(Obj_AI_Hero hero, bool alliedToHero)
@@ -75,7 +75,7 @@ namespace najsvan
             var heroes = teamCondition ? ProducedContext.ALL_ALLIES.Get() : ProducedContext.ALL_ENEMIES.Get();
             heroes.ForEach(other =>
             {
-                var distance = other.Distance(hero);
+                var distance = LibraryOfAIexandria.GetHitboxDistance(other, hero);
                 if (distance < lowestDistance && other != hero)
                 {
                     result = other;
@@ -86,9 +86,9 @@ namespace najsvan
             return result;
         }
 
-        public static Obj_AI_Hero FindPriorityTarget(float range, bool spamming, PriorityMode mode)
+        public static Obj_AI_Hero FindPriorityTarget(float range, bool spammable, bool manaless, PriorityMode mode)
         {
-            var lowestHpEnemyRange = FindLowestHpEnemy(spamming, range);
+            var lowestHpEnemyRange = FindLowestHpEnemy(spammable, manaless, range);
             var emergencyTarget = FindAllyInDanger(range);
             Obj_AI_Hero threatToEmergencyTarget = null;
 
@@ -97,11 +97,11 @@ namespace najsvan
                 threatToEmergencyTarget = FindNearestHero(emergencyTarget, false);
             }
 
-            if (threatToEmergencyTarget.IsValidTarget() && LibraryOfAIexandria.GetHitboxDistance(GenericContext.MY_HERO, threatToEmergencyTarget) < range)
+            if (threatToEmergencyTarget.IsValidTarget() && LibraryOfAIexandria.GetHitboxDistance(Constants.MY_HERO, threatToEmergencyTarget) < range)
             {
                 return threatToEmergencyTarget;
             }
-            else if (lowestHpEnemyRange != null && LibraryOfAIexandria.IsTypicalHpUnder(lowestHpEnemyRange.GetTarget(), GenericContext.DANGER_UNDER_PERCENT))
+            else if (lowestHpEnemyRange != null && LibraryOfAIexandria.IsTypicalHpUnder(lowestHpEnemyRange.GetTarget(), Constants.DANGER_UNDER_PERCENT))
             {
                 return lowestHpEnemyRange.GetTarget();
             }
@@ -113,10 +113,10 @@ namespace najsvan
 
                 if (mode == PriorityMode.HighestAp)
                 {
-                    attackTarget = FindHighestApEnemy(spamming, range);
-                    if (!spamming)
+                    attackTarget = FindHighestApEnemy(spammable, manaless, range);
+                    if (!spammable)
                     {
-                        alternateTarget = FindHighestApEnemy(false, GenericContext.SCAN_DISTANCE);
+                        alternateTarget = FindHighestApEnemy(false, manaless, Constants.SCAN_DISTANCE);
                         if (alternateTarget.GetTarget().IsValid && alternateTarget.GetValue() < 100)
                         {
                             mode = PriorityMode.HighestImpact;
@@ -128,14 +128,15 @@ namespace najsvan
 
                 if (mode == PriorityMode.HighestImpact)
                 {
-                    attackTarget = FindHighestImpactEnemy(spamming, range);
-                    if (!spamming)
+                    attackTarget = FindHighestImpactEnemy(spammable, manaless, range);
+
+                    if (!spammable)
                     {
-                        alternateTarget = FindHighestImpactEnemy(false, GenericContext.SCAN_DISTANCE);
+                        alternateTarget = FindHighestImpactEnemy(false, manaless, Constants.SCAN_DISTANCE);
                     }
                 }
 
-                if (!spamming)
+                if (!spammable)
                 {
                     if (attackTarget != null && !attackTarget.GetTarget().Equals(alternateTarget.GetTarget()) &&
                         alternateTarget.GetValue() > attackTarget.GetValue() && WAITING_FOR_BETTER_TARGET_SINCE == 0)
@@ -156,24 +157,24 @@ namespace najsvan
             }
         }
 
-        private static TargetValuePair FindHighestImpactEnemy(bool spamming, float range)
+        private static TargetValuePair FindHighestImpactEnemy(bool spammable, bool manaless, float range)
         {
-            return FindBestStatEnemy(spamming, range, LibraryOfAIexandria.GetImpact, true);
+            return FindBestStatEnemy(spammable, manaless, range, LibraryOfAIexandria.GetImpact, true);
         }
 
-        private static TargetValuePair FindHighestApEnemy(bool spamming, float range)
+        private static TargetValuePair FindHighestApEnemy(bool spammable, bool manaless, float range)
         {
-            return FindBestStatEnemy(spamming, range, enemy => enemy.BaseAbilityDamage, true);
+            return FindBestStatEnemy(spammable, manaless, range, enemy => enemy.FlatMagicDamageMod, true);
         }
 
-        private static TargetValuePair FindLowestHpEnemy(bool spamming, float range)
+        private static TargetValuePair FindLowestHpEnemy(bool spammable, bool manaless, float range)
         {
-            return FindBestStatEnemy(spamming, range, enemy => enemy.Health, false);
+            return FindBestStatEnemy(spammable, manaless, range, enemy => enemy.Health, false);
         }
 
         private delegate float GetStat(Obj_AI_Hero hero);
 
-        private static TargetValuePair FindBestStatEnemy(bool spamming, float range, GetStat function, bool higherIsBetter)
+        private static TargetValuePair FindBestStatEnemy(bool spammable, bool manaless, float range, GetStat function, bool higherIsBetter)
         {
             TargetValuePair result = null;
             float bestStat;
@@ -187,7 +188,7 @@ namespace najsvan
             }
             ProducedContext.ALL_ENEMIES.Get().ForEach(enemy =>
             {
-                var distance = GenericContext.MY_HERO.Distance(enemy);
+                var distance = LibraryOfAIexandria.GetHitboxDistance(Constants.MY_HERO, enemy);
                 var stat = function(enemy);
                 bool isBestStat;
                 if (higherIsBetter)
@@ -198,11 +199,28 @@ namespace najsvan
                 {
                     isBestStat = bestStat > stat;
                 }
-                if (distance < range && isBestStat
-                    && (spamming
-                    || LibraryOfAIexandria.GetHeroesInRange(enemy, false, GenericContext.SCAN_DISTANCE / 2).Count > 0
-                    || LibraryOfAIexandria.IsTypicalHpUnder(enemy, GenericContext.FEAR_UNDER_PERCENT))
-                    || GenericContext.MY_HERO.Mana / GenericContext.MY_HERO.MaxMana > 0.5)
+                if (
+                    distance < range && isBestStat && enemy.IsValidTarget()
+                    &&
+                    (
+                        spammable
+                        &&
+                        (
+                            manaless
+                            || Constants.MY_HERO.Mana/Constants.MY_HERO.MaxMana > 0.5
+                        )
+                        ||
+                        (
+                            (
+                                LibraryOfAIexandria.GetHeroesInRange(enemy, false, Constants.SCAN_DISTANCE / 2).Count > 0
+                                && 
+                                LibraryOfAIexandria.IsTypicalHpUnder(enemy, Constants.FEAR_UNDER_PERCENT)
+                            )
+                            ||
+                            LibraryOfAIexandria.IsTypicalHpUnder(enemy, Constants.DANGER_UNDER_PERCENT)
+                        )
+                        )
+                    )
                 {
                     result = new TargetValuePair(enemy, stat);
                     bestStat = stat;

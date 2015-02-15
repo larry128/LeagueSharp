@@ -67,13 +67,13 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Clearable.cs" />
+    <Compile Include="Constants.cs" />
     <Compile Include="LibraryOfAIexandria.cs" />
     <Compile Include="ServerRequest.cs" />
     <Compile Include="HeroInfo.cs" />
     <Compile Include="ItemMapper.cs" />
     <Compile Include="JSONBTree.cs" />
     <Compile Include="Assert.cs" />
-    <Compile Include="GenericContext.cs" />
     <Compile Include="ServerInteraction.cs" />
     <Compile Include="Statistics.cs" />
     <Compile Include="ProducedContext.cs" />
