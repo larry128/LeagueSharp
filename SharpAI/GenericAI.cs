@@ -100,11 +100,11 @@ namespace najsvan
                 var worldDirection = Constants.GetHeroInfo(Constants.MY_HERO).GetDirection();
                 Drawing.DrawText(textOffsetX, textOffsetY, Color.Yellow, worldDirection.X + "x" + worldDirection.Y);
 
-                var sdLength = Math.Sqrt(worldDirection.X*worldDirection.X + worldDirection.Y*worldDirection.Y);
+                var sdLength = Math.Sqrt(worldDirection.X * worldDirection.X + worldDirection.Y * worldDirection.Y);
                 const int length = 600;
                 if (sdLength != 0)
                 {
-                    var coefficient = length/(float) sdLength;
+                    var coefficient = length / (float)sdLength;
                     worldDirection *= coefficient;
                     var start = Drawing.WorldToScreen(Constants.MY_HERO.Position);
                     var end = Drawing.WorldToScreen(Constants.MY_HERO.Position + worldDirection.To3D());
@@ -131,7 +131,7 @@ namespace najsvan
 
             if (unit.IsValid<Obj_AI_Turret>() && args.Target.IsValid<Obj_AI_Hero>())
             {
-                Constants.GetHeroInfo((Obj_AI_Hero) args.Target).SetFocusedByTower((Obj_AI_Turret) unit);
+                Constants.GetHeroInfo((Obj_AI_Hero)args.Target).SetFocusedByTower((Obj_AI_Turret)unit);
             }
 
             Obj_AI_Base_OnProcessSpellCast_Hook(unit, args);
@@ -191,12 +191,12 @@ namespace najsvan
 
         private void Game_OnWndProc(WndEventArgs args)
         {
-            if (args.Msg == (ulong) WindowsMessages.WM_KEYDOWN)
+            if (args.Msg == (ulong)WindowsMessages.WM_KEYDOWN)
             {
                 if (args.WParam.Equals(0x75)) // F6 - test shit
                 {
                     var nextToBuy = LibraryOfAIexandria.GetNextBuyItemId(shoppingList);
-                    Game.PrintChat("nextToBuy: " + ((ItemId) nextToBuy.Value.Id));
+                    Game.PrintChat("nextToBuy: " + ((ItemId)nextToBuy.Value.Id));
                     Game.PrintChat("price: " + nextToBuy.Value.GoldBase);
                     Game.PrintChat("GetOccuppiedInventorySlots: " +
                                    LibraryOfAIexandria.GetOccuppiedInventorySlots().Count);
@@ -213,7 +213,7 @@ namespace najsvan
                     Constants.LOG
                         .Error(
                             "Not all serverInteractions processed, pushing tick 50 * GenericAIContext.serverInteractions.Count millis.");
-                    lastTickProcessed += 50*Constants.SERVER_INTERACTIONS.Count;
+                    lastTickProcessed += 50 * Constants.SERVER_INTERACTIONS.Count;
                     return;
                 }
 
@@ -260,9 +260,12 @@ namespace najsvan
         {
             if (Constants.SERVER_INTERACTIONS.Count > 0)
             {
-                Constants.LOG
-                    .Debug("SERVER_INTERACTIONS.Count: " + Constants.SERVER_INTERACTIONS.Count);
-                var timePerAction = Constants.TICK_DELAY/(Constants.SERVER_INTERACTIONS.Count + 1);
+                if (Constants.SERVER_INTERACTIONS.Count > 1)
+                {
+                    Constants.LOG
+                        .Debug("SERVER_INTERACTIONS.Count: " + Constants.SERVER_INTERACTIONS.Count);
+                }
+                var timePerAction = Constants.TICK_DELAY / (Constants.SERVER_INTERACTIONS.Count + 1);
                 var delay = 0;
                 foreach (var interaction in Constants.SERVER_INTERACTIONS)
                 {
@@ -318,12 +321,12 @@ namespace najsvan
             if ((Constants.MY_HERO.InShop() || Constants.MY_HERO.IsDead))
             {
                 var nextToBuy = LibraryOfAIexandria.GetNextBuyItemId(shoppingList);
-                var elixir = ItemMapper.GetItem((int) shoppingListElixir);
+                var elixir = ItemMapper.GetItem((int)shoppingListElixir);
                 // handle initial consumables first
                 if (shoppingListConsumables.Count > 0 && Constants.MY_HERO.Level == 1)
                 {
                     var consumable = shoppingListConsumables.Pop();
-                    var item = ItemMapper.GetItem((int) consumable);
+                    var item = ItemMapper.GetItem((int)consumable);
                     if (item.HasValue && Constants.MY_HERO.GoldCurrent >= item.Value.GoldBase)
                         Constants.SERVER_INTERACTIONS.Add(new ServerInteraction(new BuyItem(),
                             () => Constants.MY_HERO.BuyItem(consumable)));
@@ -356,7 +359,7 @@ namespace najsvan
                     else
                     {
                         Constants.SERVER_INTERACTIONS.Add(new ServerInteraction(new BuyItem(),
-                            () => Constants.MY_HERO.BuyItem((ItemId) nextToBuy.Value.Id)));
+                            () => Constants.MY_HERO.BuyItem((ItemId)nextToBuy.Value.Id)));
                     }
                 }
                 else if (!nextToBuy.HasValue && LibraryOfAIexandria.GetMinutesSince(lastElixirBought) > 3 &&
@@ -410,7 +413,7 @@ namespace najsvan
                 {
                     WardSpellCast(position);
                 }
-                else if (wardSlot != null && wardSlot.SpellSlot.IsReady())
+                else if (wardSlot != null && wardSlot.SpellSlot != SpellSlot.Unknown && wardSlot.SpellSlot.IsReady())
                 {
                     if (LibraryOfAIexandria.GetHitboxDistance(
                         position.To3D(),
@@ -477,7 +480,7 @@ namespace najsvan
         public void Action_RecklessSSAndItems(Node node, String stack)
         {
             // heal
-            if (Constants.SUMMONER_HEAL.IsReady())
+            if (Constants.SUMMONER_HEAL != SpellSlot.Unknown && Constants.SUMMONER_HEAL.IsReady())
             {
                 var healTarget = Targeting.FindAllyInDanger(Constants.SUMMONER_HEAL_RANGE);
                 if (healTarget != null)
@@ -490,7 +493,7 @@ namespace najsvan
 
             // mikaels
             var mikaelsSlot = LibraryOfAIexandria.GetItemSlot(ItemId.Mikaels_Crucible);
-            if (mikaelsSlot != null && mikaelsSlot.SpellSlot.IsReady())
+            if (mikaelsSlot != null && mikaelsSlot.SpellSlot != SpellSlot.Unknown && mikaelsSlot.SpellSlot.IsReady())
             {
                 var mikaelsTarget = Targeting.FindAllyInDanger(Constants.MIKAELS_RANGE);
                 if (mikaelsTarget != null)
@@ -502,13 +505,13 @@ namespace najsvan
             }
 
             // ignite
-            if (Constants.SUMMONER_IGNITE.IsReady())
+            if (Constants.SUMMONER_IGNITE != SpellSlot.Unknown && Constants.SUMMONER_IGNITE.IsReady())
             {
                 var igniteTarget = Targeting.FindPriorityTarget(Constants.SUMMONER_IGNITE_RANGE, false, true);
                 if (igniteTarget != null)
                 {
                     var countOfAlliesNear = LibraryOfAIexandria.GetUsefulHeroesInRange(igniteTarget, false,
-                        Constants.SCAN_DISTANCE/2).Count;
+                        Constants.SCAN_DISTANCE / 2).Count;
                     if (
                         (
                             LibraryOfAIexandria.IsTypicalHpUnder(igniteTarget, 0.6)
@@ -530,7 +533,7 @@ namespace najsvan
 
             // queens
             var queensSlot = LibraryOfAIexandria.GetItemSlot(ItemId.Frost_Queens_Claim);
-            if (queensSlot != null && queensSlot.SpellSlot.IsReady())
+            if (queensSlot != null && queensSlot.SpellSlot != SpellSlot.Unknown && queensSlot.SpellSlot.IsReady())
             {
                 var queensTarget = Targeting.FindPriorityTarget(Constants.QUEENS_RANGE, false, true);
                 if (queensTarget != null)
@@ -542,7 +545,7 @@ namespace najsvan
             }
             // locket
             var locketSlot = LibraryOfAIexandria.GetItemSlot(ItemId.Locket_of_the_Iron_Solari);
-            if (locketSlot != null && locketSlot.SpellSlot.IsReady())
+            if (locketSlot != null && locketSlot.SpellSlot != SpellSlot.Unknown && locketSlot.SpellSlot.IsReady())
             {
                 var locketTarget = Targeting.FindAllyInDanger(Constants.LOCKET_RANGE);
                 if (locketTarget != null)
@@ -554,7 +557,7 @@ namespace najsvan
             }
             // talisman
             var talismanSlot = LibraryOfAIexandria.GetItemSlot(ItemId.Talisman_of_Ascension);
-            if (talismanSlot != null && talismanSlot.SpellSlot.IsReady())
+            if (talismanSlot != null && talismanSlot.SpellSlot != SpellSlot.Unknown && talismanSlot.SpellSlot.IsReady())
             {
                 var talismanTarget = Targeting.FindAllyInDanger(Constants.TALISMAN_RANGE);
                 if (talismanTarget == null)
@@ -574,7 +577,7 @@ namespace najsvan
             {
                 twinsSlot = LibraryOfAIexandria.GetItemSlot(ItemId.Twin_Shadows_3290);
             }
-            if (twinsSlot != null && twinsSlot.SpellSlot.IsReady())
+            if (twinsSlot != null && twinsSlot.SpellSlot != SpellSlot.Unknown && twinsSlot.SpellSlot.IsReady())
             {
                 var twinsTarget = Targeting.FindPriorityTarget(Constants.SCAN_DISTANCE, false, true);
                 if (twinsTarget != null)
@@ -602,7 +605,7 @@ namespace najsvan
         public void Action_DoIfInDanger(Node node, String stack)
         {
             // flash
-            if (Constants.SUMMONER_FLASH.IsReady())
+            if (Constants.SUMMONER_FLASH != SpellSlot.Unknown && Constants.SUMMONER_FLASH.IsReady())
             {
                 var safeFlashPosition = LibraryOfAIexandria.GetNearestSafeFlashPosition();
                 if (safeFlashPosition.HasValue)
@@ -618,7 +621,7 @@ namespace najsvan
             }
             // seraphs
             var seraphsSlot = LibraryOfAIexandria.GetItemSlot(ItemId.Archangels_Staff);
-            if (seraphsSlot != null && seraphsSlot.SpellSlot.IsReady())
+            if (seraphsSlot != null && seraphsSlot.SpellSlot != SpellSlot.Unknown && seraphsSlot.SpellSlot.IsReady())
             {
                 Constants.SERVER_INTERACTIONS.Add(new ServerInteraction(new SpellCast("Seraphs"),
                     () => { Constants.MY_HERO.Spellbook.CastSpell(seraphsSlot.SpellSlot); }));

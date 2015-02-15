@@ -88,37 +88,37 @@ namespace najsvan
         {
             InventorySlot ward;
 
-            if ((ward = GetItemSlot(ItemId.Warding_Totem_Trinket)) != null && ward.SpellSlot.IsReady())
+            if ((ward = GetItemSlot(ItemId.Warding_Totem_Trinket)) != null && ward.SpellSlot != SpellSlot.Unknown && ward.SpellSlot.IsReady())
             {
                 return ward;
             }
 
-            if ((ward = GetItemSlot(ItemId.Greater_Stealth_Totem_Trinket)) != null && ward.SpellSlot.IsReady())
+            if ((ward = GetItemSlot(ItemId.Greater_Stealth_Totem_Trinket)) != null && ward.SpellSlot != SpellSlot.Unknown && ward.SpellSlot.IsReady())
             {
                 return ward;
             }
 
-            if ((ward = GetItemSlot(ItemId.Stealth_Ward)) != null && ward.SpellSlot.IsReady())
+            if ((ward = GetItemSlot(ItemId.Stealth_Ward)) != null && ward.SpellSlot != SpellSlot.Unknown && ward.SpellSlot.IsReady())
             {
                 return ward;
             }
 
-            if ((ward = GetItemSlot(ItemId.Sightstone)) != null && ward.SpellSlot.IsReady())
+            if ((ward = GetItemSlot(ItemId.Sightstone)) != null && ward.SpellSlot != SpellSlot.Unknown && ward.SpellSlot.IsReady())
             {
                 return ward;
             }
 
-            if ((ward = GetItemSlot(ItemId.Ruby_Sightstone)) != null && ward.SpellSlot.IsReady())
+            if ((ward = GetItemSlot(ItemId.Ruby_Sightstone)) != null && ward.SpellSlot != SpellSlot.Unknown && ward.SpellSlot.IsReady())
             {
                 return ward;
             }
 
-            if ((ward = GetItemSlot(ItemId.Vision_Ward)) != null && ward.SpellSlot.IsReady())
+            if ((ward = GetItemSlot(ItemId.Vision_Ward)) != null && ward.SpellSlot != SpellSlot.Unknown && ward.SpellSlot.IsReady())
             {
                 return ward;
             }
 
-            if ((ward = GetItemSlot(ItemId.Greater_Vision_Totem_Trinket)) != null && ward.SpellSlot.IsReady())
+            if ((ward = GetItemSlot(ItemId.Greater_Vision_Totem_Trinket)) != null && ward.SpellSlot != SpellSlot.Unknown && ward.SpellSlot.IsReady())
             {
                 return ward;
             }
