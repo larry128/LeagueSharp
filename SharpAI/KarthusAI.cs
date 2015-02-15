@@ -103,13 +103,18 @@ namespace najsvan
         public override bool IsWardSpellReady()
         {
             // W ready and enough mana and don't see all enemies alive and not fighting
-            return false;
+            return SpellSlot.W.IsReady() &&
+                   (Constants.MY_HERO.Mana / Constants.MY_HERO.MaxMana > 0.5 ||
+                    LibraryOfAIexandria.GetHeroesInRange(Constants.MY_HERO, false, Constants.SCAN_DISTANCE).Count == 0);
         }
 
         public override float GetWardSpellRange()
         {
             // just some pytghoras
-            return 0;
+            var wLevel = Constants.MY_HERO.Spellbook.GetSpell(SpellSlot.W).Level;
+            int length = 700 + wLevel*100;
+            double wardSpellRange = Math.Sqrt(length*length + W_RANGE*W_RANGE);
+            return (float) wardSpellRange;
         }
 
         public override void WardSpellCast(Vector2 position)
@@ -187,12 +192,12 @@ namespace najsvan
                     var ultiDmg = GetUltiDmg();
                     float minHealth = 0;
                     var closeAllies = LibraryOfAIexandria.GetUsefulHeroesInRange(lowestHPEnemy.GetTarget(), false,
-                        Constants.SCAN_DISTANCE/2);
+                        Constants.SCAN_DISTANCE / 2);
                     if (closeAllies.Count > 0 &&
                         closeAllies.First().Health + Constants.BASE_PER_LVL_HP > lowestHPEnemy.GetValue() &&
                         !LibraryOfAIexandria.IsTypicalHpUnder(closeAllies.First(), Constants.DANGER_UNDER_PERCENT))
                     {
-                        minHealth = ultiDmg*2;
+                        minHealth = ultiDmg * 2;
                     }
                     if (lowestHPEnemy.GetTarget().Health > minHealth &&
                         lowestHPEnemy.GetTarget().Health < ultiDmg + minHealth)
@@ -223,7 +228,7 @@ namespace najsvan
                 ultiDamage = 550;
             }
             return
-                (float) (ultiDamage + (Constants.MY_HERO.FlatMagicDamageMod + Constants.MY_HERO.BaseAbilityDamage)*0.5);
+                (float)(ultiDamage + (Constants.MY_HERO.FlatMagicDamageMod + Constants.MY_HERO.BaseAbilityDamage) * 0.5);
         }
     }
 }
