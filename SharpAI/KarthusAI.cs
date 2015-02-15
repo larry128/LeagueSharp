@@ -111,15 +111,20 @@ namespace najsvan
         public override float GetWardSpellRange()
         {
             // just some pytghoras
-            var wLevel = Constants.MY_HERO.Spellbook.GetSpell(SpellSlot.W).Level;
-            int length = 700 + wLevel*100;
-            double wardSpellRange = Math.Sqrt(length*length + W_RANGE*W_RANGE);
-            return (float) wardSpellRange;
+            var halfLegth = GetGateHalfLength();
+            double wardSpellRange = Math.Sqrt(halfLegth * halfLegth + W_RANGE * W_RANGE);
+            return (float)wardSpellRange;
         }
 
         public override void WardSpellCast(Vector2 position)
         {
             // W
+            var castPosition = GetCirlesCommonPointApprox(Constants.MY_HERO.ServerPosition.To2D(), position, W_RANGE, GetGateHalfLength());
+            if (!castPosition.Equals(Vector2.Zero))
+            {
+                Constants.SERVER_INTERACTIONS.Add(new ServerInteraction(new SpellCast("Warding with W"),
+                    () => { Constants.MY_HERO.Spellbook.CastSpell(SpellSlot.W, castPosition.To3D()); }));
+            }
         }
 
         public override bool Condition_WillInterruptSelf(Node node, string stack)
@@ -229,6 +234,34 @@ namespace najsvan
             }
             return
                 (float)(ultiDamage + (Constants.MY_HERO.FlatMagicDamageMod + Constants.MY_HERO.BaseAbilityDamage) * 0.5);
+        }
+
+        private static Vector2 GetCirlesCommonPointApprox(Vector2 centerA, Vector2 centerB, float radiusA, float radiusB, float tolerance = 40)
+        {
+            for (int angle = 1; angle < 361; angle++)
+            {
+                var xOnCircleA = centerA.X + (radiusA * Math.Cos((Math.PI / 180) * angle));
+                var yOnCircleA = centerA.Y + (radiusA * Math.Sin((Math.PI / 180) * angle));
+
+                var xClippedToMesh = (float)Math.Floor(xOnCircleA);
+                var yClippedToMesh = (float)Math.Floor(yOnCircleA);
+
+                var potentialVector = new Vector2(xClippedToMesh, yClippedToMesh);
+                if (potentialVector.Distance(centerB) < radiusB + tolerance &&
+                    potentialVector.Distance(centerB) > radiusB - tolerance)
+                {
+                    return potentialVector;
+                }
+            }
+            return Vector2.Zero;
+        }
+
+        private static int GetGateHalfLength()
+        {
+            var wLevel = Constants.MY_HERO.Spellbook.GetSpell(SpellSlot.W).Level;
+            int length = 700 + wLevel * 100;
+            int halfLegth = length / 2;
+            return halfLegth;
         }
     }
 }
