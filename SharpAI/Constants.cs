@@ -12,8 +12,8 @@ namespace najsvan
         public static readonly HashSet<ServerInteraction> SERVER_INTERACTIONS = new HashSet<ServerInteraction>();
         public static readonly Obj_AI_Hero MY_HERO = ObjectManager.Player;
         public static readonly SpellSlot SUMMONER_HEAL = MY_HERO.GetSpellSlot("summonerheal");
-        public static readonly SpellSlot SUMMONER_IGNITE = MY_HERO.GetSpellSlot("summonerflash");
-        public static readonly SpellSlot SUMMONER_FLASH = MY_HERO.GetSpellSlot("summonerdot");
+        public static readonly SpellSlot SUMMONER_IGNITE = MY_HERO.GetSpellSlot("summonerdot");
+        public static readonly SpellSlot SUMMONER_FLASH = MY_HERO.GetSpellSlot("summonerflash");
         public static readonly GameObjectTeam ALLY_TEAM = ObjectManager.Player.Team;
         public static readonly GameObjectTeam ENEMY_TEAM = ObjectManager.Player.Team == GameObjectTeam.Chaos ? GameObjectTeam.Order : GameObjectTeam.Chaos;
         public static readonly int SCAN_DISTANCE = 1400;
@@ -27,6 +27,8 @@ namespace najsvan
         public static readonly int SUMMONER_IGNITE_RANGE = 600;
         public static readonly int MIKAELS_RANGE = 750;
         public static readonly int QUEENS_RANGE = 750;
+        public static readonly int LOCKET_RANGE = 600; 
+        public static readonly int TALISMAN_RANGE = 600;
         public static readonly int WARD_SIGHT_RADIUS = 1200;
         public static readonly int TURRET_RANGE = 950;
         public static readonly int DANGER_COOLDOWN = 3;

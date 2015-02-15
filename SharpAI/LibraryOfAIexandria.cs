@@ -316,7 +316,7 @@ namespace najsvan
 
         }
 
-        public static void PredictedSkillshot(float delay, float radius, float speed, float range, bool checkCollision, SkillshotType skillshotType, SpellSlot skillshot, Obj_AI_Hero target, bool isAoe)
+        public static bool PredictedSkillshot(float delay, float radius, float speed, float range, bool checkCollision, SkillshotType skillshotType, SpellSlot skillshot, Obj_AI_Hero target, bool isAoe)
         {
             PredictionOutput prediction = Prediction.GetPrediction(
                     new PredictionInput
@@ -332,12 +332,15 @@ namespace najsvan
                         RangeCheckFrom = Constants.MY_HERO.ServerPosition,
                         Aoe = isAoe
                     });
-            if (prediction.Hitchance.Equals(HitChance.High) || prediction.Hitchance.Equals(HitChance.VeryHigh) ||
-                prediction.Hitchance.Equals(HitChance.Immobile) || prediction.Hitchance.Equals(HitChance.Medium))
+            if (Constants.MY_HERO.ServerPosition.Distance(prediction.CastPosition) < range 
+                && (prediction.Hitchance.Equals(HitChance.Dashing) || prediction.Hitchance.Equals(HitChance.High) || prediction.Hitchance.Equals(HitChance.VeryHigh) ||
+                prediction.Hitchance.Equals(HitChance.Immobile) || prediction.Hitchance.Equals(HitChance.Medium)))
             {
-                Constants.SERVER_INTERACTIONS.Add(new ServerInteraction(new SpellCast(),
+                Constants.SERVER_INTERACTIONS.Add(new ServerInteraction(new SpellCast("Predicted skillshot: " + skillshot.ToString()),
                     () => { Constants.MY_HERO.Spellbook.CastSpell(skillshot, prediction.CastPosition); }));
+                return true;
             }
+            return false;
         }
     }
 }

@@ -28,7 +28,7 @@ namespace najsvan
             Assert.True(funcProcessor != null, "funcProcessor != null");
             this.funcProcessor = funcProcessor;
             this.treeName = treeName;
-            tree = JSONHelper.Deserialize<Tree>("https://raw.githubusercontent.com/larry128/LeagueSharp/master/Sharptomate/bt/" + treeName + ".json");
+            tree = JSONHelper.Deserialize<Tree>("https://raw.githubusercontent.com/larry128/LeagueSharp/master/SharpAI/bt/" + treeName + ".json");
             Assert.True(tree != null, "JSONHelper.Deserialize<Tree>: null for : " + treeName);
         }
 

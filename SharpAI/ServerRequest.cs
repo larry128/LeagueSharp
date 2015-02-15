@@ -1,4 +1,5 @@
-﻿using LeagueSharp;
+﻿using System;
+using LeagueSharp;
 using SharpDX;
 
 namespace najsvan
@@ -17,6 +18,17 @@ namespace najsvan
 
     public class SpellCast : ServerRequest
     {
+        private readonly String spellName;
+
+        public SpellCast(String spellName)
+        {
+            this.spellName = spellName;
+        }
+
+        public override string ToString()
+        {
+            return spellName;
+        }
     }
 
     public class BuyItem : ServerRequest

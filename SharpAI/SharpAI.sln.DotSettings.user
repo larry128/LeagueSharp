@@ -2,6 +2,7 @@
 	<s:String x:Key="/Default/Environment/AssemblyExplorer/XmlDocument/@EntryValue">&lt;AssemblyExplorer&gt;&#xD;
   &lt;Assembly Path="C:\git\LeaqueSharp\KarthusSupport\Newtonsoft.Json.dll" /&gt;&#xD;
   &lt;Assembly Path="C:\Users\larry\Downloads\_LeagueSharp\System\LeagueSharp.dll" /&gt;&#xD;
+  &lt;Assembly Path="C:\Users\larry\Downloads\_LeagueSharp\System\LeagueSharp.Common.dll" /&gt;&#xD;
 &lt;/AssemblyExplorer&gt;</s:String>
 	<s:Boolean x:Key="/Default/Housekeeping/UnitTestingMru/UnitTestSessionPersistentData/=5FB12B3A60594BE5AA6895DDE2A8E33B/@KeyIndexDefined">True</s:Boolean>
 	<s:Int64 x:Key="/Default/Housekeeping/UnitTestingMru/UnitTestSessionPersistentData/=5FB12B3A60594BE5AA6895DDE2A8E33B/GroupingIndex/@EntryValue">4</s:Int64>

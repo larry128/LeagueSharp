@@ -157,17 +157,17 @@ namespace najsvan
             }
         }
 
-        private static TargetValuePair FindHighestImpactEnemy(bool spammable, bool manaless, float range)
+        public static TargetValuePair FindHighestImpactEnemy(bool spammable, bool manaless, float range)
         {
             return FindBestStatEnemy(spammable, manaless, range, LibraryOfAIexandria.GetImpact, true);
         }
 
-        private static TargetValuePair FindHighestApEnemy(bool spammable, bool manaless, float range)
+        public static TargetValuePair FindHighestApEnemy(bool spammable, bool manaless, float range)
         {
             return FindBestStatEnemy(spammable, manaless, range, enemy => enemy.FlatMagicDamageMod, true);
         }
 
-        private static TargetValuePair FindLowestHpEnemy(bool spammable, bool manaless, float range)
+        public static TargetValuePair FindLowestHpEnemy(bool spammable, bool manaless, float range)
         {
             return FindBestStatEnemy(spammable, manaless, range, enemy => enemy.Health, false);
         }
@@ -207,18 +207,13 @@ namespace najsvan
                         &&
                         (
                             manaless
-                            || Constants.MY_HERO.Mana/Constants.MY_HERO.MaxMana > 0.5
+                            || 
+                            Constants.MY_HERO.Mana/Constants.MY_HERO.MaxMana > 0.5
                         )
                         ||
-                        (
-                            (
-                                LibraryOfAIexandria.GetHeroesInRange(enemy, false, Constants.SCAN_DISTANCE / 2).Count > 0
-                                && 
-                                LibraryOfAIexandria.IsTypicalHpUnder(enemy, Constants.FEAR_UNDER_PERCENT)
-                            )
-                            ||
-                            LibraryOfAIexandria.IsTypicalHpUnder(enemy, Constants.DANGER_UNDER_PERCENT)
-                        )
+                        LibraryOfAIexandria.GetHeroesInRange(enemy, false, Constants.SCAN_DISTANCE / 2).Count > 0
+                        ||
+                        LibraryOfAIexandria.IsTypicalHpUnder(enemy, Constants.DANGER_UNDER_PERCENT)
                         )
                     )
                 {
