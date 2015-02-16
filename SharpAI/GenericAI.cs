@@ -9,7 +9,7 @@ using Color = System.Drawing.Color;
 
 namespace najsvan
 {
-    public abstract class GenericAI
+    public abstract class GenericAI : TreeProcessor
     {
         protected int lastDanger = 0;
         protected Vector3 lastDestination = Vector3.Zero;
@@ -20,7 +20,9 @@ namespace najsvan
         protected ItemId[] shoppingList;
         protected Stack<ItemId> shoppingListConsumables;
         protected ItemId shoppingListElixir;
-        private readonly JSONBTree bTree;
+        private bool inDanger;
+        private bool safe;
+        private readonly JSONBTree genericBotBTree;
         private readonly Menu config;
 
         protected GenericAI()
@@ -30,7 +32,8 @@ namespace najsvan
                 Constants.LOG.Info("Constructor");
                 var botName = GetType().Name;
                 Game.PrintChat(botName + " - Loading");
-                bTree = new JSONBTree(this, "GenericBot");
+                genericBotBTree = new JSONBTree("GenericBot");
+                genericBotBTree.SetProcessor(this);
                 config = new Menu(botName, botName, true);
                 SetupMenu();
                 Utility.DelayAction.Add(5000, StartProcessing);
@@ -95,11 +98,27 @@ namespace najsvan
             if (Constants.GetHeroInfo(Constants.MY_HERO).GetDirection().IsValid())
             {
                 const int textOffsetX = 60;
-                const int textOffsetY = 100;
+                int textOffsetY = 100;
+
+                if (inDanger)
+                {
+                    Drawing.DrawText(textOffsetX, textOffsetY, Color.Red, "IN DANGER");
+                }
+                else
+                {
+                    Drawing.DrawText(textOffsetX, textOffsetY, Color.Orange, "NOT IN DANGER");                    
+                }
+                textOffsetY += 20;
+                if (safe)
+                {
+                    Drawing.DrawText(textOffsetX, textOffsetY, Color.LawnGreen, "SAFE");
+                }
+                else
+                {
+                    Drawing.DrawText(textOffsetX, textOffsetY, Color.Orange, "NOT SAFE");
+                }
 
                 var worldDirection = Constants.GetHeroInfo(Constants.MY_HERO).GetDirection();
-                Drawing.DrawText(textOffsetX, textOffsetY, Color.Yellow, worldDirection.X + "x" + worldDirection.Y);
-
                 var sdLength = Math.Sqrt(worldDirection.X * worldDirection.X + worldDirection.Y * worldDirection.Y);
                 const int length = 600;
                 if (sdLength != 0)
@@ -152,14 +171,14 @@ namespace najsvan
             var configJsonBTreeDebug = new MenuItem("jsonBTreeDebug", "JSONBTree Debug");
             // default value
             configJsonBTreeDebug.SetValue(false);
-            Logger.GetLogger(bTree.GetType().Name).debugEnabled = configJsonBTreeDebug.GetValue<bool>();
+            Logger.GetLogger(genericBotBTree.GetName()).debugEnabled = configJsonBTreeDebug.GetValue<bool>();
             configJsonBTreeDebug.ValueChanged += ConfigJsonBTreeDebug_ValueChanged;
             config.AddItem(configJsonBTreeDebug);
 
             var configJsonBTreeStats = new MenuItem("jsonBTreeStats", "JSONBTree Stats");
             // default value
             configJsonBTreeStats.SetValue(false);
-            Statistics.GetStatistics(bTree.GetType().Name).writingEnabled = configJsonBTreeStats.GetValue<bool>();
+            Statistics.GetStatistics(genericBotBTree.GetName()).writingEnabled = configJsonBTreeStats.GetValue<bool>();
             configJsonBTreeStats.ValueChanged += ConfigJsonBTreeStats_ValueChanged;
             config.AddItem(configJsonBTreeStats);
 
@@ -177,14 +196,14 @@ namespace najsvan
         private void ConfigJsonBTreeDebug_ValueChanged(Object obj, OnValueChangeEventArgs args)
         {
             var newValue = args.GetNewValue<bool>();
-            Logger.GetLogger(bTree.GetType().Name).debugEnabled = newValue;
+            Logger.GetLogger(genericBotBTree.GetName()).debugEnabled = newValue;
             args.Process = true;
         }
 
         private void ConfigJsonBTreeStats_ValueChanged(Object obj, OnValueChangeEventArgs args)
         {
             var newValue = args.GetNewValue<bool>();
-            var jsonBTreeStats = Statistics.GetStatistics(bTree.GetType().Name);
+            var jsonBTreeStats = Statistics.GetStatistics(genericBotBTree.GetName());
             jsonBTreeStats.writingEnabled = newValue;
             args.Process = true;
         }
@@ -237,7 +256,7 @@ namespace najsvan
         {
             try
             {
-                bTree.Tick();
+                genericBotBTree.Tick();
 
                 ProcessServerInteractions();
             }
@@ -299,7 +318,7 @@ namespace najsvan
 
         public void Action_LevelUp(Node node, String stack)
         {
-            bTree.OnlyOncePer(500);
+            genericBotBTree.OnlyOncePer(500);
 
             // level up
             var abilityLevel = Constants.MY_HERO.Spellbook.GetSpell(SpellSlot.Q).Level +
@@ -315,7 +334,7 @@ namespace najsvan
 
         public void Action_Buy(Node node, String stack)
         {
-            bTree.OnlyOncePer(500);
+            genericBotBTree.OnlyOncePer(500);
 
             // buy
             if ((Constants.MY_HERO.InShop() || Constants.MY_HERO.IsDead))
@@ -599,7 +618,10 @@ namespace najsvan
 
         public bool Condition_IsInDanger(Node node, String stack)
         {
-            return LibraryOfAIexandria.IsAllyInDanger(Constants.MY_HERO);
+            bool result = LibraryOfAIexandria.IsAllyInDanger(Constants.MY_HERO);
+            inDanger = result;
+            return result;
+
         }
 
         public void Action_DoIfInDanger(Node node, String stack)

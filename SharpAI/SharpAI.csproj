@@ -85,6 +85,7 @@
     <Compile Include="KarthusAI.cs" />
     <Compile Include="Targeting.cs" />
     <Compile Include="TooFastException.cs" />
+    <Compile Include="TreeProcessor.cs" />
     <Compile Include="WardSpot.cs" />
   </ItemGroup>
   <ItemGroup>

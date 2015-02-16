@@ -11,21 +11,18 @@ using LeagueSharp;
 
 namespace najsvan
 {
-    public class JSONBTree
+    public class JSONBTree : TreeProcessor
     {
-        private static readonly Logger LOG = Logger.GetLogger(typeof (JSONBTree).Name);
-        private static readonly Statistics STAT = Statistics.GetStatistics(typeof (JSONBTree).Name);
-        private String callingMethod;
-        private readonly Object funcProcessor;
-        private readonly Dictionary<String, int[]> methodCallTimestamps = new Dictionary<String, int[]>();
-        private readonly Dictionary<String, MethodInfo> reflectionCache = new Dictionary<String, MethodInfo>();
+        private readonly Logger log;
+        private readonly Statistics stat;
         private readonly Tree tree;
         private readonly String treeName;
+        private TreeProcessor processor;
 
-        public JSONBTree(Object funcProcessor, String treeName)
+        public JSONBTree(String treeName)
         {
-            Assert.True(funcProcessor != null, "funcProcessor != null");
-            this.funcProcessor = funcProcessor;
+            log = Logger.GetLogger(treeName);
+            stat = Statistics.GetStatistics(treeName);
             this.treeName = treeName;
             tree =
                 JSONHelper.Deserialize<Tree>(
@@ -33,9 +30,20 @@ namespace najsvan
             Assert.True(tree != null, "JSONHelper.Deserialize<Tree>: null for : " + treeName);
         }
 
+        public String GetName()
+        {
+            return treeName;
+        }
+
+        public void SetProcessor(TreeProcessor processor)
+        {
+            this.processor = processor;
+        }
+
         public bool Tick(String stack = "")
         {
-            LOG.Debug(treeName + " Tick()");
+            Assert.True(processor != null, "processor == null");
+            log.Debug(treeName + " Tick()");
 
             // expected to have one "Start" node
             var nodes = tree.nodes;
@@ -47,7 +55,7 @@ namespace najsvan
             {
                 Assert.True(start.children.Count < 2, "start.children.Count must be 0 or 1");
                 var child = start.children[0];
-                return ProcessGenericNode(child, stack + treeName);
+                return ProcessCommonNode(child, stack + treeName);
             }
             return false;
         }
@@ -59,7 +67,7 @@ namespace najsvan
             {
                 foreach (var child in node.children)
                 {
-                    if (!ProcessGenericNode(child, stack + node))
+                    if (!ProcessCommonNode(child, stack + node))
                     {
                         return false;
                     }
@@ -76,7 +84,7 @@ namespace najsvan
             {
                 foreach (var child in node.children)
                 {
-                    if (ProcessGenericNode(child, stack + node))
+                    if (ProcessCommonNode(child, stack + node))
                     {
                         return true;
                     }
@@ -90,23 +98,23 @@ namespace najsvan
         {
             Assert.True(node.children != null && node.children.Count == 1,
                 "node.children != null && node.children.Count == 1");
-            return ProcessGenericNode(node.children[0], stack + node, this, "Decorator_" + node.name);
+            return ProcessCommonNode(node.children[0], stack + node, this, "Decorator_" + node.name);
         }
 
         public bool Decorator_Not(Node node, String stack)
         {
-            return !ProcessGenericNode(node, stack);
+            return !ProcessCommonNode(node, stack);
         }
 
         public bool Decorator_True(Node node, String stack)
         {
-            ProcessGenericNode(node, stack);
+            ProcessCommonNode(node, stack);
             return true;
         }
 
         public bool Decorator_False(Node node, String stack)
         {
-            ProcessGenericNode(node, stack);
+            ProcessCommonNode(node, stack);
             return false;
         }
 
@@ -125,39 +133,39 @@ namespace najsvan
             Assert.True(node.children == null || node.children.Count == 0,
                 "node.children == null || node.children.Count == 0");
             var methodName = prefix + node.name;
-            var result = ProcessGenericNode(node, stack + node, funcProcessor, methodName);
-            STAT.Increment(treeName + ".json." + methodName);
-            LOG.Debug(stack + node + " : " + result);
+            var result = ProcessCommonNode(node, stack + node, processor, methodName);
+            stat.Increment(treeName + ".json." + methodName);
+            log.Debug(stack + node + " : " + result);
             return result;
         }
 
-        private bool ProcessGenericNode(Node node, String stack)
+        private bool ProcessCommonNode(Node node, String stack)
         {
-            return ProcessGenericNode(node, stack, this, "Process_" + node.type);
+            return ProcessCommonNode(node, stack, this, "Process_" + node.type);
         }
 
-        private bool ProcessGenericNode(Node node, String stack, Object processor, String methodName)
+        private bool ProcessCommonNode(Node node, String stack, TreeProcessor processor, String methodName)
         {
             var simpleSignature = processor.GetHashCode() + methodName;
             MethodInfo method;
-            if (!reflectionCache.TryGetValue(simpleSignature, out method))
+            if (!processor.GetReflectionCache().TryGetValue(simpleSignature, out method))
             {
                 var type = processor.GetType();
                 method = type.GetRuntimeMethod(methodName, new[] {node.GetType(), stack.GetType()});
                 Assert.True(method != null, "GetMethod: null for : " + methodName + " in " + type.Name);
-                reflectionCache.Add(simpleSignature, method);
+                processor.GetReflectionCache().Add(simpleSignature, method);
             }
 
             try
             {
-                callingMethod = methodName;
+                processor.SetCurrentMethod(methodName);
                 var invokeResult = method.Invoke(processor, new object[] {node, stack});
-                callingMethod = null;
+                processor.SetCurrentMethod(null);
 
                 int[] timestamp;
-                if (!methodCallTimestamps.TryGetValue(methodName, out timestamp))
+                if (!processor.GetMethodCallTimestamps().TryGetValue(methodName, out timestamp))
                 {
-                    methodCallTimestamps.Add(methodName, new[] {Environment.TickCount});
+                    processor.GetMethodCallTimestamps().Add(methodName, new[] {Environment.TickCount});
                 }
                 else
                 {
@@ -193,9 +201,9 @@ namespace najsvan
 
         public void OnlyOncePer(int millis)
         {
-            Assert.False(callingMethod == null, "callingMethod == null");
+            Assert.False(processor.GetCurrentMethod() == null, "processor.GetCurrentMethod() == null");
             int[] timestamp;
-            if (methodCallTimestamps.TryGetValue(callingMethod, out timestamp))
+            if (processor.GetMethodCallTimestamps().TryGetValue(processor.GetCurrentMethod(), out timestamp))
             {
                 if ((Environment.TickCount - timestamp[0]) < millis)
                 {
