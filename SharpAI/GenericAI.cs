@@ -95,41 +95,41 @@ namespace najsvan
 
         private void Drawing_OnDraw(EventArgs args)
         {
-            if (Constants.GetHeroInfo(Constants.MY_HERO).GetDirection().IsValid())
-            {
-                const int textOffsetX = 60;
-                int textOffsetY = 100;
+            const int textOffsetX = 60;
+            int textOffsetY = 100;
 
-                if (inDanger)
+            if (inDanger)
+            {
+                Drawing.DrawText(textOffsetX, textOffsetY, Color.Red, "IN DANGER");
+            }
+            else
+            {
+                if (!safe)
                 {
-                    Drawing.DrawText(textOffsetX, textOffsetY, Color.Red, "IN DANGER");
+                    Drawing.DrawText(textOffsetX, textOffsetY, Color.Orange, "NOT IN DANGER");
                 }
                 else
-                {
-                    Drawing.DrawText(textOffsetX, textOffsetY, Color.Orange, "NOT IN DANGER");                    
-                }
-                textOffsetY += 20;
-                if (safe)
                 {
                     Drawing.DrawText(textOffsetX, textOffsetY, Color.LawnGreen, "SAFE");
                 }
-                else
-                {
-                    Drawing.DrawText(textOffsetX, textOffsetY, Color.Orange, "NOT SAFE");
-                }
-
-                var worldDirection = Constants.GetHeroInfo(Constants.MY_HERO).GetDirection();
+            }
+            ProducedContext.ALL_HEROES.Get().ForEach( (h) => {
+            if (Constants.GetHeroInfo(h).GetDirection().IsValid())
+            {
+                var worldDirection = Constants.GetHeroInfo(h).GetDirection();
                 var sdLength = Math.Sqrt(worldDirection.X * worldDirection.X + worldDirection.Y * worldDirection.Y);
                 const int length = 600;
                 if (sdLength != 0)
                 {
                     var coefficient = length / (float)sdLength;
                     worldDirection *= coefficient;
-                    var start = Drawing.WorldToScreen(Constants.MY_HERO.Position);
-                    var end = Drawing.WorldToScreen(Constants.MY_HERO.Position + worldDirection.To3D());
+                    var start = Drawing.WorldToScreen(h.Position);
+                    var end = Drawing.WorldToScreen(h.Position + worldDirection.To3D());
                     Drawing.DrawLine(start, end, 2, Color.Blue);
                 }
             }
+                }
+            );
         }
 
         private void Obj_AI_Base_OnProcessSpellCast(Obj_AI_Base unit, GameObjectProcessSpellCastEventArgs args)
@@ -611,16 +611,14 @@ namespace najsvan
         public abstract void Action_DoRecklessly(Node node, String stack);
         public abstract bool Action_RecklessMove(Node node, String stack);
 
-        public bool Condition_DangerCooldown(Node node, String stack)
-        {
-            return LibraryOfAIexandria.GetSecondsSince(lastDanger) < Constants.DANGER_COOLDOWN;
-        }
-
         public bool Condition_IsInDanger(Node node, String stack)
         {
-            bool result = LibraryOfAIexandria.IsAllyInDanger(Constants.MY_HERO);
-            inDanger = result;
-            return result;
+            inDanger = LibraryOfAIexandria.IsAllyInDanger(Constants.MY_HERO);
+            if (inDanger)
+            {
+                lastDanger = Environment.TickCount;
+            }
+            return inDanger;
 
         }
 
@@ -654,7 +652,8 @@ namespace najsvan
 
         public bool Condition_IsUnsafe(Node node, String stack)
         {
-            return false; //!LibraryOfAIexandria.IsHeroSafe(Constants.MY_HERO);
+            safe = LibraryOfAIexandria.GetSecondsSince(lastDanger) > Constants.DANGER_COOLDOWN && true; //LibraryOfAIexandria.IsHeroSafe(Constants.MY_HERO);
+            return !safe;
         }
 
         public void Action_MoveToSafety(Node node, String stack)

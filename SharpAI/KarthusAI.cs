@@ -204,7 +204,7 @@ namespace najsvan
                     {
                         minHealth = ultiDmg * 2;
                     }
-                    if (lowestHPEnemy.GetTarget().Health > minHealth &&
+                    if (Constants.MY_HERO.Distance(lowestHPEnemy.GetTarget()) > Constants.SCAN_DISTANCE/2 && lowestHPEnemy.GetTarget().Health > minHealth &&
                         lowestHPEnemy.GetTarget().Health < ultiDmg + minHealth)
                     {
                         Constants.SERVER_INTERACTIONS.Add(new ServerInteraction(new SpellCast("Ulti"),

@@ -28,7 +28,7 @@ namespace najsvan
 
         public float GetHpLost()
         {
-            var hpLastTick = (float) hpHistory.Peek();
+            var hpLastTick = (float)hpHistory.Peek();
             return hpLastTick - GetRealHero().Health;
         }
 
@@ -82,14 +82,12 @@ namespace najsvan
 
         public void UpdateDirection()
         {
-            var start = GetRealHero().Position.To2D();
-            var end = GetRealHero().ServerPosition.To2D();
-            SetDirection(start, end);
-        }
-
-        public Vector3 GetFacing()
-        {
-            return GetRealHero().Position + direction.To3D();
+            if (GetRealHero().Path != null && GetRealHero().Path.Length > 0)
+            {
+                var start = GetRealHero().Position.To2D();
+                var end = GetRealHero().Path[0].To2D();
+                SetDirection(start, end);
+            }
         }
 
         private Obj_AI_Hero GetRealHero()
